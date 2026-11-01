@@ -6,11 +6,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     ...(config.plugins ?? []),
     [
-      'react-native-maps',
-      {
-        // 안드로이드 지도(Google Maps)용 키. iOS 는 Apple 지도를 써서 키가 필요 없습니다.
-        androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
-      },
+      // 네이버 지도: 네이버 클라우드 플랫폼(NCP) Maps 의 Client ID
+      '@mj-studio/react-native-naver-map',
+      { client_id: process.env.NAVER_MAP_CLIENT_ID ?? '' },
+    ],
+    [
+      // 네이버 지도 SDK 는 Maven Central 이 아니라 네이버 저장소에서 받아야 함
+      'expo-build-properties',
+      { android: { extraMavenRepos: ['https://repository.map.naver.com/archive/maven'] } },
     ],
   ],
 });
