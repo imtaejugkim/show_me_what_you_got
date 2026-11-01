@@ -1,7 +1,6 @@
 // 디자인 시스템: Claude Design 시안(다크 · 라임 포인트)의 색, 글꼴, 공통 컴포넌트.
 // 화면들은 여기 있는 조각만 조합해서 만듭니다.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as Haptics from 'expo-haptics';
 import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +15,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { haptic } from '../lib/haptics';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -73,8 +73,9 @@ export const type = StyleSheet.create({
   mono: { color: colors.sub, fontFamily: fonts.numMedium, fontSize: 13 },
 });
 
+/** 값을 고를 때의 가벼운 진동 (지도에서 위치 선택 등). 규칙은 src/lib/haptics.ts 참고 */
 export function tap() {
-  Haptics.selectionAsync().catch(() => {});
+  haptic.selection();
 }
 
 // ---------- 레이아웃 ----------
@@ -206,10 +207,7 @@ export function IconButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={() => {
-        tap();
-        onPress();
-      }}
+      onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => [
         s.iconButton,
@@ -272,7 +270,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       onPress={() => {
-        tap();
+        if (variant === 'primary') haptic.light();
         onPress();
       }}
       disabled={disabled || loading}
@@ -336,10 +334,7 @@ export function Row({
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => {
-        tap();
-        onPress();
-      }}
+      onPress={onPress}
       style={({ pressed }) => pressed && { opacity: 0.6 }}
     >
       {content}
@@ -384,7 +379,7 @@ export function Segmented<T extends string | number>({
             accessibilityRole="radio"
             accessibilityState={{ checked: selected }}
             onPress={() => {
-              tap();
+              if (!selected) haptic.selection();
               onChange(o.value);
             }}
             style={[s.segment, selected && { backgroundColor: colors.track }]}

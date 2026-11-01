@@ -24,6 +24,8 @@ import {
   type,
 } from '../../components/ui';
 import { requestLocationPermissions, syncGeofences } from '../../lib/geofence';
+import { haptic } from '../../lib/haptics';
+import { GPS_MARGIN_M } from '../../lib/places';
 import { getGroupToday, getMyNickname, listMyGroups, type Group } from '../../lib/groups';
 import { endSession, getTodaySessions, startSession } from '../../lib/sessions';
 import { getStreakStats, type WeekDay } from '../../lib/stats';
@@ -93,12 +95,14 @@ export default function TodayScreen() {
       if (!perm.granted) return;
       const here = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const near = places.map((p) => ({ p, d: distanceMeters(here.coords, p) })).sort((a, b) => a.d - b.d)[0];
-      // GPS 오차를 감안해 반경 + 50m 까지 허용
-      if (near.d > near.p.radius + 50) {
+      // GPS 오차를 감안해 반경 + 여유(GPS_MARGIN_M) 까지 허용
+      if (near.d > near.p.radius + GPS_MARGIN_M) {
+        haptic.error();
         Alert.alert('장소 밖이에요', `가장 가까운 "${near.p.name}"까지 약 ${Math.round(near.d)}m 남았어요.`);
         return;
       }
       await startSession({ kind, place: near.p });
+      haptic.success();
     } catch (e) {
       Alert.alert('오류', String(e));
     } finally {
@@ -120,7 +124,9 @@ export default function TodayScreen() {
           style: 'destructive',
           onPress: async () => {
             setBusy('end');
-            await endSession('manual');
+            const finished = await endSession('manual');
+            if (finished?.verified) haptic.success();
+            else haptic.warning();
             setBusy(null);
           },
         },

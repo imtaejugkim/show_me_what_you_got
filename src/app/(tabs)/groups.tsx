@@ -19,6 +19,7 @@ import {
   type,
 } from '../../components/ui';
 import { createGroup, getMyNickname, joinGroup, listMyGroups, setNickname, type Group } from '../../lib/groups';
+import { haptic } from '../../lib/haptics';
 import { isServerEnabled } from '../../lib/supabase';
 import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
 
@@ -62,8 +63,10 @@ function GroupsOnline() {
     setBusy(true);
     try {
       await fn();
+      haptic.success();
       load();
     } catch (e) {
+      haptic.error();
       Alert.alert('오류', String((e as Error)?.message ?? e));
     } finally {
       setBusy(false);

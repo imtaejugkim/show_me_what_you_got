@@ -14,6 +14,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, St
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, colors, IconButton, Input, Segmented, space, tap, type } from '../../components/ui';
 import { requestLocationPermissions } from '../../lib/geofence';
+import { haptic } from '../../lib/haptics';
 import { addPlace } from '../../lib/places';
 import { KIND_LABEL, KINDS, type Kind } from '../../lib/types';
 
@@ -101,6 +102,7 @@ export default function NewPlaceScreen() {
       const perm = await requestLocationPermissions();
       if (perm === 'denied') return Alert.alert('위치 권한이 필요해요');
       const res = await addPlace({ name: name.trim(), kind, radius: radiusM, address: address || undefined, ...picked });
+      haptic.success();
       if (!res.ok) Alert.alert('등록 완료', res.reason);
       router.back();
     } catch (e) {
