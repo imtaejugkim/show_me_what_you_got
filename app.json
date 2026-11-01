@@ -6,18 +6,22 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.imtaejugkim.showmewhatyougot",
       "infoPlist": {
-        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
       "package": "com.imtaejugkim.showmewhatyougot",
       "adaptiveIcon": {
-        "backgroundColor": "#111111",
+        "backgroundColor": "#0A0A0B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,6 +43,7 @@
         }
       ],
       "expo-notifications"
-    ]
+    ],
+    "backgroundColor": "#0A0A0B"
   }
 }
