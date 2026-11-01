@@ -12,9 +12,7 @@
       "bundleIdentifier": "com.imtaejugkim.showmewhatyougot",
       "infoPlist": {
         "UIBackgroundModes": [
-          "location",
-          "fetch",
-          "remote-notification"
+          "location"
         ]
       }
     },
@@ -42,7 +40,12 @@
           "isAndroidBackgroundLocationEnabled": true
         }
       ],
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
+        }
+      ]
     ],
     "backgroundColor": "#0A0A0B"
   }
