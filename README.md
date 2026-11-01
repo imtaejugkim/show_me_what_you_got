@@ -1,190 +1,340 @@
-# Show Me What You Got 💪📚
+<div align="center">
 
-> 혼자서는 매번 실패하는 사람들을 위한 "증명" 앱.
-> 등록한 헬스장·독서실에 **도착하면 알림 → 시작 → 장소를 벗어나면 자동 종료 → 최소 시간 채웠으면 증명 완료**.
-> 그룹 초대코드로 친구들과 오늘 누가 증명했는지 서로 확인합니다.
+# SHOW ME WHAT YOU GOT
+
+**말로만 하는 다짐 말고, 증명하자.**
+헬스장·독서실에 실제로 갔는지 위치로 증명하고, 그룹 친구들과 매일 서로 확인하는 동기부여 앱
+
+![React Native](https://img.shields.io/badge/React_Native-0.88-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Expo](https://img.shields.io/badge/Expo-SDK_58-000020?style=flat-square&logo=expo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
+![Naver Map](https://img.shields.io/badge/NAVER_Map-SDK-03C75A?style=flat-square&logo=naver&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey?style=flat-square)
+
+<img src="docs/screenshots/overview.png" alt="앱 화면 미리보기" width="100%">
+
+</div>
+
+<br>
+
+## 목차
+
+- [서비스 소개](#서비스-소개)
+- [화면](#화면)
+- [동작 방식](#동작-방식)
+- [기술 스택](#기술-스택)
+- [프로젝트 구조](#프로젝트-구조)
+- [시작하기](#시작하기)
+- [테스트 방법](#테스트-방법)
+- [배포](#배포)
+- [협업 규칙](#협업-규칙)
+- [로드맵](#로드맵)
+
+<br>
+
+## 서비스 소개
+
+운동이든 공부든 **혼자서는 동기부여가 안 돼서 매번 실패하는 사람들**을 위한 앱입니다.
+"오늘 운동했어"라는 말 대신, 앱이 **실제로 그 장소에 일정 시간 이상 머물렀는지**를 확인해서 증명해 줍니다.
+그리고 그 증명을 그룹 친구들과 공유하면서 서로 자극을 주고받습니다.
+
+### 핵심 기능
+
+| 기능 | 설명 |
+|---|---|
+| 📍 **장소 등록** | 네이버 지도에서 헬스장·독서실 위치를 탭해서 등록하고, 감지 반경(100/150/300m)을 정합니다 |
+| 🔔 **도착 감지** | 앱이 꺼져 있어도 등록한 장소에 도착하면 "시작할까요?" 알림이 옵니다 |
+| ⏱️ **자동 기록** | 시작 후 장소를 벗어나면 자동으로 종료되고, 머문 시간을 기록합니다 |
+| ✅ **증명 판정** | 최소 시간(운동 30분, 공부 60분)을 채우면 **증명 완료** |
+| 🔥 **연속 기록** | 증명한 날이 이어지면 연속 일수와 이번 주 현황을 보여줍니다 |
+| 👥 **그룹** | 6자리 초대코드로 그룹에 참여하고, 그룹원들의 오늘 증명 현황(완료 / 진행 중 / 아직)을 확인합니다 |
+
+<br>
+
+## 화면
+
+> 아래 화면은 [Claude Design](https://claude.ai/artifact/FW4uE8grpfc468FUDUhqXi)으로 만든 디자인 시안이며, 앱은 이 시안을 기준으로 구현되어 있습니다.
+
+<table>
+  <tr>
+    <th>오늘</th>
+    <th>장소</th>
+    <th>장소 선택</th>
+    <th>그룹</th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/today.png" width="200" alt="오늘 화면"></td>
+    <td><img src="docs/screenshots/places.png" width="200" alt="장소 화면"></td>
+    <td><img src="docs/screenshots/place-picker.png" width="200" alt="장소 선택 화면"></td>
+    <td><img src="docs/screenshots/group.png" width="200" alt="그룹 화면"></td>
+  </tr>
+  <tr>
+    <td>연속 기록, 진행 중 타이머와<br>인증까지 남은 시간,<br>운동/공부 현황, 그룹 요약</td>
+    <td>등록한 장소와 감지 반경을<br>지도와 목록으로 확인</td>
+    <td>현재 위치 기준 지도에서<br>탭한 좌표로 장소 등록</td>
+    <td>그룹원별 오늘 증명 현황과<br>초대코드 공유</td>
+  </tr>
+</table>
+
+<br>
+
+## 동작 방식
+
+```
+[장소 등록]  지도에서 탭한 좌표 + 반경 → OS 지오펜스로 등록
+     │
+     ▼  (앱이 꺼져 있어도 OS가 앱을 깨워줌)
+[장소 진입]  "동네 헬스장 도착! 시작할까요?"  [시작하기] [오늘은 패스]
+     │  시작하기
+     ▼
+[진행 중]    타이머 시작, 그룹원에게 🔥 진행 중으로 표시
+     │  장소 이탈(자동) 또는 종료 버튼(수동)
+     ▼
+[종료]       머문 시간 ≥ 최소 시간 ?  ✅ 증명 완료  :  ⚠️ 시간 부족
+     │
+     ▼
+[동기화]     Supabase에 기록 업로드 → 그룹원 화면에 반영
+```
+
+- 기록은 **기기에 먼저 저장**(AsyncStorage)하고, 네트워크가 될 때 서버로 동기화합니다. 앱이 꺼진 상태에서 실행되는 백그라운드 작업도 기기 저장소만으로 동작합니다.
+- 수동 시작은 **등록한 장소 반경 안에 있을 때만** 가능합니다. 그래야 "증명"이니까요.
+- 서버 없이도 혼자 모드(장소 등록, 자동 감지, 증명 기록)로 동작하며, 그룹 기능만 서버가 필요합니다.
+
+<br>
 
 ## 기술 스택
 
-| 역할 | 사용 기술 | 안드로이드로 치면 |
+| 분류 | 기술 | 용도 |
 |---|---|---|
-| 앱 프레임워크 | React Native + **Expo** (SDK 58) | - |
-| 화면 이동 | **Expo Router** (파일 기반 라우팅) | Navigation Component |
-| 장소 도착/이탈 감지 | `expo-location` 지오펜싱 + `expo-task-manager` | GeofencingClient + BroadcastReceiver |
-| 알림 | `expo-notifications` (액션 버튼 포함) | NotificationCompat + Action |
-| 지도 | 네이버 지도 (`@mj-studio/react-native-naver-map`) | Naver Map SDK |
-| 기기 저장소 | AsyncStorage | SharedPreferences |
-| 서버(그룹/로그인/DB) | **Supabase** (Postgres + 익명 로그인) | Firebase 같은 BaaS |
+| **앱** | React Native 0.88 · Expo SDK 58 · TypeScript | iOS/Android 동시 개발 |
+| **화면 이동** | Expo Router | 파일 기반 라우팅 (`src/app/` 파일 = 화면) |
+| **위치 감지** | `expo-location` (지오펜싱) · `expo-task-manager` | 장소 도착/이탈 감지, 앱이 꺼져 있을 때 백그라운드 실행 |
+| **알림** | `expo-notifications` | 도착 알림(시작/패스 버튼), 증명 완료 알림 (기기 내 로컬 알림) |
+| **지도** | 네이버 지도 (`@mj-studio/react-native-naver-map`) | 장소 선택, 등록 장소 표시 |
+| **서버** | Supabase (Postgres · Auth · RLS) | 익명 로그인, 그룹, 기록 공유. 같은 그룹끼리만 조회 가능하도록 행 단위 권한 적용 |
+| **기기 저장소** | AsyncStorage | 장소, 진행 중 세션, 기록 |
+| **디자인** | Claude Design · IBM Plex Sans KR · Space Grotesk · Ionicons | 시안 제작, 글꼴, 아이콘 |
+| **빌드/배포** | Expo 개발 빌드 · EAS Build/Submit | 로컬 실기기 테스트, 스토어/TestFlight 배포 |
 
-## 폴더 구조
+<br>
 
-```
-index.ts                  # 진입점. 지오펜스 백그라운드 task를 가장 먼저 등록
-app.json                  # 앱 이름, 패키지명, 권한 설정 (AndroidManifest/Info.plist는 여기서 자동 생성)
-eas.json                  # 클라우드 빌드 설정
-supabase/schema.sql       # DB 테이블 + 권한 + 함수 (Supabase SQL Editor에 붙여넣기)
-src/
-  app/                    # 📱 화면 (파일 = 화면)
-    _layout.tsx           #   최상위: 알림 처리, 동기화
-    (tabs)/_layout.tsx    #   하단 탭
-    (tabs)/index.tsx      #   오늘 (진행 중 세션, 오늘 증명)
-    (tabs)/places.tsx     #   장소 목록 + 지도
-    place/new.tsx         #   네이버 지도에서 탭해서 장소 고르기
-    (tabs)/groups.tsx     #   그룹 목록/생성/참여
-    group/[id].tsx        #   그룹 상세 (멤버별 오늘 현황)
-  lib/                    # 🧠 로직
-    geofence.ts           #   도착/이탈 → 알림 / 자동 종료
-    sessions.ts           #   세션 시작·종료·증명 판정·서버 동기화
-    notifications.ts      #   알림 채널, 버튼, 알림 내용
-    responses.ts          #   알림 버튼 눌렀을 때
-    groups.ts             #   그룹 API
-    supabase.ts           #   서버 클라이언트 + 익명 로그인
-    places.ts             #   장소 추가/삭제 + 지오펜스 갱신
-    storage.ts            #   기기 저장소
-    types.ts              #   타입, 최소 인증 시간(MIN_MINUTES)
-  components/ui.tsx       # 디자인 시스템 (색·글자·버튼·카드 등 공통 UI)
-```
-
-## 핵심 흐름
+## 프로젝트 구조
 
 ```
-[장소 등록] ──► OS에 지오펜스 등록 (반경 100~300m)
-      │
-      ▼ (앱이 꺼져 있어도 OS가 깨워줌)
-[장소 진입] ──► "OO 헬스장 도착! 시작할까요?" 알림 [시작하기] [오늘은 패스]
-      │ 시작하기
-      ▼
-[진행 중] ──► 그룹원에게 🔥 진행 중으로 보임
-      │ 장소 이탈 (자동) 또는 종료 버튼 (수동)
-      ▼
-[종료] ──► 머문 시간 ≥ 최소 시간(운동 30분 / 공부 60분)? ✅ 증명 완료 : ⚠️ 시간 부족
+show_me_what_you_got/
+├── index.ts                    # 앱 진입점. 지오펜스 백그라운드 작업을 가장 먼저 등록
+├── app.json                    # 앱 이름, 패키지명, 권한, 플러그인 설정
+├── app.config.ts               # .env 의 지도 키 등 비밀 값을 네이티브 설정에 주입
+├── eas.json                    # EAS 클라우드 빌드 프로필 (development / preview / production)
+├── .env.example                # 환경변수 견본 (복사해서 .env 로 사용)
+├── supabase/
+│   └── schema.sql              # DB 테이블 · 권한(RLS) · 함수
+├── docs/screenshots/           # README 이미지
+└── src/
+    ├── app/                    # 📱 화면 (Expo Router)
+    │   ├── _layout.tsx         #   최상위: 글꼴 로딩, 알림 응답 처리, 서버 동기화
+    │   ├── (tabs)/
+    │   │   ├── _layout.tsx     #   하단 탭 (오늘 / 장소 / 그룹)
+    │   │   ├── index.tsx       #   오늘: 연속 기록, 진행 중 세션, 현황, 그룹 요약
+    │   │   ├── places.tsx      #   장소: 지도 + 목록
+    │   │   └── groups.tsx      #   그룹: 닉네임, 참여/생성, 내 그룹 목록
+    │   ├── place/new.tsx       #   장소 선택 (네이버 지도 탭)
+    │   └── group/[id].tsx      #   그룹 상세: 멤버별 오늘 현황
+    ├── components/
+    │   └── ui.tsx              # 🎨 디자인 시스템 (색 · 글꼴 · 버튼 · 카드 · 세그먼트 등)
+    └── lib/                    # 🧠 로직
+        ├── geofence.ts         #   지오펜스 등록, 도착 → 알림 / 이탈 → 자동 종료
+        ├── sessions.ts         #   세션 시작 · 종료 · 증명 판정 · 서버 동기화
+        ├── notifications.ts    #   알림 채널, 버튼, 알림 내용
+        ├── responses.ts        #   알림 버튼을 눌렀을 때 처리
+        ├── places.ts           #   장소 추가/삭제 + 지오펜스 갱신
+        ├── stats.ts            #   연속 기록, 이번 주 현황 계산
+        ├── groups.ts           #   그룹 API (생성 · 참여 · 오늘 현황)
+        ├── supabase.ts         #   서버 클라이언트, 익명 로그인
+        ├── storage.ts          #   기기 저장소
+        ├── types.ts            #   타입, 최소 인증 시간(MIN_MINUTES)
+        └── utils.ts            #   거리 계산, 시간 포맷 등
 ```
 
----
+<br>
 
-## 1. 처음 한 번: 개발 환경 준비
+## 시작하기
 
-1. **Node.js 20 이상** 설치 (`node -v` 로 확인)
-2. **Android Studio** (이미 있으실 거예요) — SDK, 에뮬레이터, `adb` 사용
-3. (iOS 테스트하려면) **Mac + Xcode**, 또는 Mac이 없으면 EAS 클라우드 빌드 사용
-4. 의존성 설치:
-   ```bash
-   git clone https://github.com/imtaejugkim/show_me_what_you_got.git
-   cd show_me_what_you_got
-   npm install
-   ```
+### 1. 준비물
 
-## 2. (선택) 서버 설정 — 그룹 기능 쓰려면
+| 대상 | 필요한 것 |
+|---|---|
+| 공통 | Node.js 20 이상 |
+| Android | Android Studio (SDK, 에뮬레이터), JDK 17 이상 |
+| iOS | macOS + **Xcode 27 이상** + CocoaPods (`brew install cocoapods`) |
 
-서버 없이도 "혼자 모드"(장소 등록, 자동 감지, 오늘 증명)는 동작합니다. 그룹 기능은 Supabase가 필요해요. (무료 플랜으로 충분)
+> Expo SDK 58은 Xcode 27(Swift 6.4) 기준입니다. Xcode 26에서는 Expo 내부 모듈이 컴파일되지 않습니다.
 
-1. https://supabase.com 가입 → **New project** 생성
-2. 왼쪽 **SQL Editor** → `supabase/schema.sql` 내용 전체 붙여넣기 → **Run**
-3. **Authentication → Sign In / Providers → Anonymous sign-ins** 켜기
-4. **Project Settings → API** 에서 `Project URL`, `anon public` 키 복사
-5. 프로젝트 루트에 `.env` 파일 생성:
-   ```bash
-   cp .env.example .env
-   # 그리고 .env 안에 URL과 KEY 붙여넣기
-   ```
-   `.env` 는 git에 올라가지 않습니다. 값을 바꾸면 `npx expo start -c` 로 캐시 지우고 재시작하세요.
-
-## 2-1. 지도 설정 — 네이버 지도 Client ID
-
-장소는 **네이버 지도**에서 현재 위치를 중심으로 띄운 뒤, 지도를 탭한 좌표로 등록합니다. 키가 없으면 지도가 표시되지 않아요 (다른 기능은 정상).
-
-1. https://www.ncloud.com 가입 → 콘솔 → **Services → Application Services → Maps**
-2. **Application 등록** → Dynamic Map 선택
-   - Android 앱 패키지 이름: `com.imtaejugkim.showmewhatyougot`
-   - iOS Bundle ID: `com.imtaejugkim.showmewhatyougot`
-3. 생성된 Application 의 **Client ID** 복사 → `.env` 에 추가:
-   ```
-   NAVER_MAP_CLIENT_ID=복사한ClientID
-   ```
-4. 네이티브 설정이라 **다시 빌드**해야 반영됩니다: `npx expo run:android`
-
-## 3. 실행하기 (개발 빌드)
-
-⚠️ **Expo Go 앱으로는 안 됩니다.** 이 앱은 백그라운드 위치(지오펜싱)를 쓰기 때문에, 내 앱 전용 "개발 빌드"가 필요해요.
-개념: **네이티브 껍데기(APK)는 1번만 빌드**하고, 이후 JS 코드 수정은 저장 즉시 반영(Fast Refresh)됩니다.
-
-### Android (로컬 빌드 — 추천)
-
-에뮬레이터를 켜두거나 USB 디버깅 폰을 연결한 뒤:
+### 2. 설치
 
 ```bash
-npx expo run:android
+git clone https://github.com/imtaejugkim/show_me_what_you_got.git
+cd show_me_what_you_got
+npm install
 ```
 
-- 처음엔 `android/` 폴더가 자동 생성되고 Gradle 빌드가 돌아서 몇 분 걸립니다.
-- `android/` 폴더는 **직접 수정하지 마세요** (gitignore 되어 있고, `app.json` 기준으로 매번 재생성됨). 권한/설정은 `app.json` 에서 바꿉니다.
-- 다음부터는 네이티브 라이브러리를 추가한 게 아니면 그냥:
-  ```bash
-  npx expo start
-  ```
-  하고 폰에 설치된 앱을 열면 됩니다. 터미널에서 `r` = 리로드, `j` = 디버거.
+> 프로젝트는 `~/Documents`, `~/Desktop` 밖(예: `~/dev`)에 두는 것을 권장합니다. iCloud 동기화나 macOS 권한 때문에 Gradle이 파일을 못 읽는 경우가 있습니다.
 
-### iOS
-
-- **Mac 있음**: `npx expo run:ios` (시뮬레이터) 또는 `npx expo run:ios --device` (실기기, Apple ID 필요)
-- **Mac 없음**: EAS 클라우드 빌드
-  ```bash
-  npm install -g eas-cli
-  eas login
-  eas build --profile development --platform ios
-  ```
-  실기기 설치는 Apple Developer Program($99/년) 계정이 필요합니다.
-
-## 4. 테스트 방법
-
-### 빠른 테스트 (실제로 안 움직여도 됨)
-1. **장소** 탭 → 오른쪽 위 **+** → 현재 위치 중심 지도에서 원하는 곳을 **탭** (또는 주소 검색) → 이름/종류/반경 선택 → **이 위치로 등록**
-2. 위치 권한은 **"항상 허용"** 선택 (안드로이드 11+는 설정 화면으로 이동함)
-3. 장소 목록에서 장소를 눌러 **🧪 도착 테스트** → 알림이 뜨면 **시작하기**
-4. **오늘** 탭에서 진행 중 확인 → 장소 메뉴의 **🧪 이탈 테스트** 또는 **종료하기**
-   - 바로 종료하면 "⚠️ 시간 부족"이 정상입니다. 빨리 확인하려면 `src/lib/types.ts` 의 `MIN_MINUTES` 를 `1` 로 바꿔 보세요.
-
-(🧪 버튼은 개발 빌드에서만 보이고, 배포 빌드에서는 자동으로 사라집니다)
-
-### 진짜 지오펜스 테스트 (에뮬레이터)
-1. 에뮬레이터 `...` (Extended controls) → **Location** → 지도에서 장소 A 찍고 **Set location**
-2. 앱에서 그 위치로 장소 등록
-3. 멀리 떨어진 B로 위치 변경 → 다시 A로 변경 → 1~2분 내 도착 알림
-4. 다시 B로 이동 → 세션 자동 종료 알림
-   - Google Play 이미지 에뮬레이터 사용 권장. 지오펜스는 OS가 배터리 아끼려고 **수십 초~몇 분 늦게** 오는 게 정상이에요.
-
-### 실기기
-실제로 헬스장 가보는 게 최고의 테스트입니다 😄 반경은 150m 이상 추천 (실내 GPS 오차).
-
-### 그룹 테스트
-에뮬레이터 + 실기기(또는 에뮬레이터 2대)로 각각 앱 실행 → 한쪽에서 그룹 만들기 → 초대코드를 다른 쪽에서 입력.
-
-## 5. 배포 (Play Store / App Store)
+### 3. 환경변수
 
 ```bash
-eas build --profile preview --platform android     # 친구들에게 돌릴 테스트용 APK
-eas build --profile production --platform all      # 스토어 제출용 (AAB / IPA)
-eas submit --platform android                      # Play Console 업로드
-eas submit --platform ios                          # App Store Connect 업로드
+cp .env.example .env
 ```
 
-스토어 심사 주의: **백그라운드 위치 권한**은 Google Play에서 별도 신고서(사용 목적 설명 + 시연 영상)가 필요하고, Apple도 사용 목적 문구를 꼼꼼히 봅니다. 미리 준비하세요.
+`.env` 를 열어 값을 채웁니다. (`.env` 는 git에 올라가지 않습니다. `.env.example` 에는 실제 값을 넣지 마세요.)
 
-## 자주 쓰는 명령어
+| 변수 | 설명 | 없으면 |
+|---|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | 혼자 모드 (그룹 기능 꺼짐) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable 키 (`sb_publishable_...`) | 혼자 모드 |
+| `NAVER_MAP_CLIENT_ID` | 네이버 클라우드 Maps Client ID | 지도가 표시되지 않음 |
+
+<details>
+<summary><b>Supabase 설정 방법</b></summary>
+
+1. [supabase.com](https://supabase.com) 에서 프로젝트 생성
+2. **SQL Editor** 에 `supabase/schema.sql` 전체를 붙여넣고 **Run**
+3. **Authentication → Sign In / Providers → Allow anonymous sign-ins** 켜기
+4. 프로젝트 상단 **Connect** 에서 URL과 publishable 키를 복사해 `.env` 에 입력
+   - `secret` / `service_role` 키는 절대 앱에 넣지 마세요.
+
+</details>
+
+<details>
+<summary><b>네이버 지도 설정 방법</b></summary>
+
+1. [ncloud.com](https://www.ncloud.com) 가입 후 결제수단 등록
+2. 콘솔 → **Services → Application Services → Maps → Application 등록**
+   - API: **Dynamic Map**
+   - Android 패키지 이름 / iOS Bundle ID: `com.imtaejugkim.showmewhatyougot`
+3. **인증 정보** 의 **Client ID** 를 `.env` 의 `NAVER_MAP_CLIENT_ID` 에 입력
+
+</details>
+
+### 4. 실행
+
+이 앱은 백그라운드 위치를 사용하므로 **Expo Go로는 실행할 수 없고, 개발 빌드가 필요합니다.**
+네이티브 앱은 처음 한 번 빌드하고, 이후 JS 코드 수정은 저장 즉시 반영됩니다.
 
 ```bash
-npx expo start            # 개발 서버 (이미 개발 빌드가 설치되어 있을 때)
-npx expo start -c         # 캐시 지우고 시작 (.env 바꿨을 때)
-npx expo run:android      # 네이티브 다시 빌드 + 설치 (네이티브 라이브러리 추가 시)
-npx expo install <패키지>  # 라이브러리 추가 (npm install 대신 이걸로! SDK 호환 버전 자동 선택)
-npm run typecheck         # 타입 검사
-npx expo-doctor           # 설정/의존성 문제 진단
+# Android (에뮬레이터 또는 USB 연결된 폰)
+npx expo run:android            # 에뮬레이터
+npx expo run:android --device   # 실기기 선택
+
+# iOS (macOS)
+npx expo run:ios                # 시뮬레이터
+npx expo run:ios --device       # 실기기 선택
+
+# 이미 개발 빌드가 설치되어 있다면 개발 서버만
+npx expo start
 ```
 
-## 다음에 해볼 것 (아이디어)
+> **`app.json`, `.env` 의 네이티브 값(`NAVER_MAP_CLIENT_ID`), 네이티브 라이브러리가 바뀐 코드를 받았다면** 네이티브 폴더를 다시 만든 뒤 빌드하세요.
+> ```bash
+> npx expo prebuild --clean
+> ```
+> `EXPO_PUBLIC_*` 값만 바꿨다면 `npx expo start -c` 로 충분합니다.
 
-- [ ] 연속 증명 스트릭 🔥, 주간 리포트
-- [ ] 그룹별 규칙 (최소 시간, 주 N회 목표), 벌금/내기
+<details>
+<summary><b>실기기 설정</b></summary>
+
+**Android**
+- 설정 → 휴대전화 정보 → 빌드번호 7번 탭 → 개발자 옵션 → **USB 디버깅** 켜기
+- 삼성 폰: 설정 → 배터리 → 백그라운드 사용 제한에서 이 앱을 **제한 없음** 으로 (안 하면 도착 알림이 늦거나 안 옴)
+
+**iOS**
+- 아이폰 연결 → "이 컴퓨터를 신뢰" → 설정 → 개인정보 보호 및 보안 → **개발자 모드** 켜기
+- Xcode → Settings → Accounts 에 Apple ID 로그인
+- 무료 Apple ID(Personal Team)로도 설치 가능 (7일마다 재설치 필요). 원격 푸시 권한은 꺼져 있습니다.
+
+**공통**: 위치 권한은 **항상 허용 + 정확한 위치**
+
+</details>
+
+<details>
+<summary><b>자주 나는 문제</b></summary>
+
+| 증상 | 해결 |
+|---|---|
+| Gradle `The settings are not yet available for build` | 프로젝트를 Documents 밖으로 옮기고, `sudo` 로 설치한 파일이 없는지 확인 |
+| Android 빌드에서 네이버 SDK를 못 찾음 | `npx expo prebuild --clean --platform android` |
+| iOS `Personal development teams do not support the Push Notifications capability` | 최신 코드를 받고 `npx expo prebuild --clean --platform ios` |
+| iOS `sending '...' risks causing data races` (expo-modules-jsi) | Xcode 27 이상으로 업데이트 후 `~/Library/Developer/Xcode/DerivedData` 정리 |
+| 그룹 탭이 계속 "혼자 모드" | `.env.example` 이 아닌 `.env` 에 값을 넣었는지 확인 후 `npx expo start -c` |
+
+</details>
+
+<br>
+
+## 테스트 방법
+
+**빠른 테스트** (실제로 이동하지 않아도 됨)
+
+1. **장소** 탭 → **+** → 지도에서 현재 위치 근처를 탭 → 이름·종류·반경 선택 → **이 위치로 등록**
+2. 장소 목록에서 장소를 눌러 **🧪 도착 테스트** → 알림의 **시작하기**
+3. **오늘** 탭에서 진행 중 확인 → 장소 메뉴의 **🧪 이탈 테스트** 또는 **종료하기**
+
+> 🧪 버튼은 개발 빌드에서만 보입니다. 바로 종료하면 "시간 부족"이 정상이며, 빠르게 확인하려면 `src/lib/types.ts` 의 `MIN_MINUTES` 를 `1` 로 바꿔보세요.
+
+**실제 지오펜스 테스트**
+- 에뮬레이터: Extended controls → Location 에서 장소 밖 → 장소 안 → 장소 밖으로 위치 변경 (OS 특성상 수십 초~몇 분 지연될 수 있음)
+- 실기기: 앱을 완전히 끈 상태로 등록한 장소에 방문
+
+**그룹 테스트**: 기기 2대(에뮬레이터 + 실기기 등)에서 한쪽이 그룹 생성 → 다른 쪽이 초대코드로 참여
+
+<br>
+
+## 배포
+
+[EAS](https://docs.expo.dev/eas/) 로 클라우드에서 빌드·제출합니다. 클라우드 빌드는 로컬 `.env` 를 읽지 않으므로 환경변수를 EAS 에 별도로 등록해야 합니다.
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build --profile preview --platform android     # 테스트용 APK (링크로 설치)
+npx eas-cli@latest build --profile production --platform ios      # TestFlight / App Store 용
+npx eas-cli@latest submit --platform ios
+```
+
+| 스토어 | 필요한 계정 |
+|---|---|
+| App Store / TestFlight | Apple Developer Program (연 $99) |
+| Google Play | Google Play Console (1회 $25) |
+
+> 백그라운드 위치 권한은 Google Play 별도 신고서(사용 목적 + 시연 영상)와 Apple 심사에서 사용 목적 설명이 필요합니다.
+
+<br>
+
+## 협업 규칙
+
+이슈 · 커밋 · PR 제목은 작업 유형 태그로 시작합니다. 자세한 규칙은 [`CLAUDE.md`](CLAUDE.md) 참고.
+
+```
+[FEAT] 새로운 기능      [MOD] 코드 수정        [ADD] 부수 코드/라이브러리/파일 추가
+[CHORE] 자잘한 작업     [DEL] 삭제             [UI] UI 작업
+[FIX] 버그 수정         [HOTFIX] 급한 버그 수정  [MERGE] 브랜치 병합
+[MOVE] 파일 이동        [RENAME] 이름 변경      [REFACTOR] 전면 수정
+[DOCS] 문서
+```
+
+<br>
+
+## 로드맵
+
+- [x] 지오펜스 기반 도착 감지 · 자동 종료 · 증명 판정
+- [x] 네이버 지도에서 장소 선택
+- [x] Supabase 익명 로그인 · 초대코드 그룹 · 그룹원 현황
+- [x] 연속 기록 · 이번 주 현황
+- [x] Claude Design 시안 기반 UI
 - [ ] 그룹원이 증명하면 푸시 알림 (Supabase Edge Function + Expo Push)
-- [ ] 사진 인증 추가 (위치 조작 방지)
-- [ ] 카카오/애플 로그인으로 익명 계정 연결
+- [ ] 그룹 화면 실시간 갱신 (Supabase Realtime)
+- [ ] 그룹별 규칙 (최소 시간, 주 N회 목표), 벌금/내기
+- [ ] 사진 인증 (위치 조작 방지)
+- [ ] 주간 리포트
+- [ ] 카카오 / 애플 / 구글 로그인으로 익명 계정 연결
+- [ ] TestFlight · Play 내부 테스트 배포
