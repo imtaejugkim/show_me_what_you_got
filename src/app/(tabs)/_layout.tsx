@@ -1,12 +1,11 @@
-// 하단 탭 3개: 오늘 / 장소 / 그룹
+// 하단 탭 3개: 오늘 / 장소 / 그룹 (선택된 탭은 채워진 아이콘)
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { colors, type IconName } from '../../components/ui';
-
 import type { ColorValue } from 'react-native';
+import { colors, fonts, type IconName } from '../../components/ui';
 
 function TabIcon({ active, inactive, focused, color }: { active: IconName; inactive: IconName; focused: boolean; color: ColorValue | null }) {
-  return <Ionicons name={focused ? active : inactive} size={24} color={(color ?? colors.muted) as string} />;
+  return <Ionicons name={focused ? active : inactive} size={24} color={(color ?? colors.sub) as string} />;
 }
 
 const icon = (active: IconName, inactive: IconName) =>
@@ -20,12 +19,14 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.bg,
+          backgroundColor: 'rgba(11,11,12,0.94)',
           borderTopColor: colors.border,
+          borderTopWidth: 1,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+        tabBarInactiveTintColor: colors.sub,
+        tabBarLabelStyle: { fontSize: 11, fontFamily: fonts.bold },
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
