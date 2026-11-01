@@ -39,8 +39,6 @@
 
 ## 화면
 
-> 아래 화면은 [Claude Design](https://claude.ai/artifact/FW4uE8grpfc468FUDUhqXi)으로 만든 디자인 시안이며, 앱은 이 시안을 기준으로 구현되어 있습니다.
-
 <table>
   <tr>
     <th>오늘</th>
