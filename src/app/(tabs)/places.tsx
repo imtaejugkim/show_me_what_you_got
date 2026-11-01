@@ -2,7 +2,12 @@
 import { router } from 'expo-router';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Platform, View } from 'react-native';
-import MapView, { Circle, Marker } from 'react-native-maps';
+import {
+  NaverMapCircleOverlay,
+  NaverMapMarkerOverlay,
+  NaverMapView,
+  type NaverMapViewRef,
+} from '@mj-studio/react-native-naver-map';
 import { Button, Card, colors, Divider, EmptyState, IconButton, Pill, radius, Row, Screen, Section, space } from '../../components/ui';
 import { handleRegionEvent } from '../../lib/geofence';
 import { removePlace } from '../../lib/places';
@@ -12,7 +17,7 @@ import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
 
 export default function PlacesScreen() {
   const [places, setPlaces] = useState<Place[]>([]);
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<NaverMapViewRef>(null);
 
   const load = useCallback(() => {
     getPlaces().then(setPlaces);
@@ -22,10 +27,16 @@ export default function PlacesScreen() {
   // 모든 장소가 보이도록 지도 맞추기
   useEffect(() => {
     if (places.length === 0) return;
+    const lats = places.map((p) => p.latitude);
+    const lngs = places.map((p) => p.longitude);
+    const pad = 0.004; // 약 400m 여유
     const t = setTimeout(() => {
-      mapRef.current?.fitToCoordinates(places, {
-        edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
-        animated: false,
+      mapRef.current?.animateRegionTo({
+        latitude: Math.min(...lats) - pad,
+        longitude: Math.min(...lngs) - pad,
+        latitudeDelta: Math.max(...lats) - Math.min(...lats) + pad * 2,
+        longitudeDelta: Math.max(...lngs) - Math.min(...lngs) + pad * 2,
+        duration: 0,
       });
     }, 300);
     return () => clearTimeout(t);
@@ -78,21 +89,36 @@ export default function PlacesScreen() {
       ) : (
         <>
           <View style={{ height: 220, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
-            <MapView
+            <NaverMapView
               ref={mapRef}
               style={{ flex: 1 }}
-              userInterfaceStyle="dark"
-              showsUserLocation
-              toolbarEnabled={false}
-              initialRegion={{ latitude: places[0].latitude, longitude: places[0].longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
+              initialCamera={{ latitude: places[0].latitude, longitude: places[0].longitude, zoom: 14 }}
+              isShowLocationButton={false}
+              isShowZoomControls={false}
+              locale="ko"
             >
               {places.map((p) => (
                 <Fragment key={p.id}>
-                  <Circle center={p} radius={p.radius} strokeColor={colors.accent} strokeWidth={1.5} fillColor="rgba(215,255,63,0.15)" />
-                  <Marker coordinate={p} title={p.name} pinColor={colors.accent} />
+                  <NaverMapCircleOverlay
+                    latitude={p.latitude}
+                    longitude={p.longitude}
+                    radius={p.radius}
+                    color="rgba(215,255,63,0.18)"
+                    outlineColor={colors.accent}
+                    outlineWidth={1.5}
+                  />
+                  <NaverMapMarkerOverlay
+                    latitude={p.latitude}
+                    longitude={p.longitude}
+                    image={{ symbol: 'green' }}
+                    width={24}
+                    height={34}
+                    caption={{ text: p.name }}
+                    onTap={() => openActions(p)}
+                  />
                 </Fragment>
               ))}
-            </MapView>
+            </NaverMapView>
           </View>
 
           <Section title={`내 장소 ${places.length}`}>
