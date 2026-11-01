@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 import { KIND_EMOJI, KIND_LABEL, MIN_MINUTES, type Place, type Session } from './types';
 import { formatDuration, minutesBetween } from './utils';
@@ -23,7 +24,7 @@ export async function setupNotifications() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: '인증 알림',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: AndroidImportance.HIGH,
     });
   }
 

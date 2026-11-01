@@ -2,6 +2,7 @@
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { colors } from '../components/ui';
@@ -9,6 +10,8 @@ import { emitDataChanged } from '../lib/events';
 import { requestNotificationPermission, setupNotifications } from '../lib/notifications';
 import { handleNotificationResponse } from '../lib/responses';
 import { syncSessions } from '../lib/sessions';
+
+SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
 
 export default function RootLayout() {
   // 앱이 꺼진 상태에서 알림을 눌러 앱이 켜진 경우
@@ -45,11 +48,14 @@ export default function RootLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerTintColor: colors.text,
+          headerTitleStyle: { fontWeight: '700' },
+          headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="group/[id]" options={{ title: '그룹' }} />
+        <Stack.Screen name="group/[id]" options={{ title: '' }} />
+        <Stack.Screen name="place/new" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
       </Stack>
     </>
   );

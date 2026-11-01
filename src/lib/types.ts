@@ -12,6 +12,12 @@ export const KIND_EMOJI: Record<Kind, string> = {
   study: '📚',
 };
 
+/** Ionicons 아이콘 이름 */
+export const KIND_ICON = {
+  workout: 'barbell',
+  study: 'book',
+} as const satisfies Record<Kind, string>;
+
 /** 이 시간(분) 이상 머물러야 "증명 완료"로 인정합니다. 나중에 그룹별 설정으로 바꿔도 됩니다. */
 export const MIN_MINUTES: Record<Kind, number> = {
   workout: 30,
