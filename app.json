@@ -19,7 +19,7 @@
     "android": {
       "package": "com.imtaejugkim.showmewhatyougot",
       "adaptiveIcon": {
-        "backgroundColor": "#0A0A0B",
+        "backgroundColor": "#D7FF3F",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -45,8 +45,17 @@
         {
           "enableRemoteNotifications": false
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#0B0B0C",
+          "imageWidth": 160,
+          "resizeMode": "contain"
+        }
       ]
     ],
-    "backgroundColor": "#0A0A0B"
+    "backgroundColor": "#0B0B0C"
   }
 }
