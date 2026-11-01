@@ -79,6 +79,9 @@ export async function syncSessions() {
   const { error } = await supabase.from('sessions').upsert(rows);
   if (error) throw error;
 
+  // 업로드하는 동안 새 기록이 추가됐을 수 있으니, 저장 직전에 다시 읽어서 표시만 바꾼다
+  // (예전 목록으로 덮어쓰면 그 사이 끝난 세션이 사라짐)
   const syncedIds = new Set(pending.filter((s) => s.endedAt).map((s) => s.id));
-  await store.saveHistory(history.map((s) => (syncedIds.has(s.id) ? { ...s, synced: true } : s)));
+  const latest = await store.getHistory();
+  await store.saveHistory(latest.map((s) => (syncedIds.has(s.id) ? { ...s, synced: true } : s)));
 }
