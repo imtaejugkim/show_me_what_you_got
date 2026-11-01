@@ -55,3 +55,8 @@ export function formatToday(): string {
   const d = new Date();
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WEEKDAYS[d.getDay()]}요일`;
 }
+
+/** 기기 시간대 기준 날짜 키 (예: 2026-11-01) */
+export function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
