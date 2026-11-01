@@ -1,4 +1,4 @@
-// 지도에서 장소 고르기 (네이버 지도)
+// 지도에서 장소 고르기 (네이버 지도, 시안: 장소 선택 — 지도 탭)
 // 현재 위치를 중심으로 지도를 띄우고 → 사용자가 지도를 탭한 좌표를 장소(지오펜스 중심)로 저장합니다.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
@@ -12,10 +12,10 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, colors, IconButton, Input, radius, Segmented, space, tap, type } from '../../components/ui';
+import { Button, colors, IconButton, Input, Segmented, space, tap, type } from '../../components/ui';
 import { requestLocationPermissions } from '../../lib/geofence';
 import { addPlace } from '../../lib/places';
-import { KIND_ICON, KIND_LABEL, KINDS, type Kind } from '../../lib/types';
+import { KIND_LABEL, KINDS, type Kind } from '../../lib/types';
 
 type Coord = { latitude: number; longitude: number };
 
@@ -61,7 +61,11 @@ export default function NewPlaceScreen() {
     setAddress('');
     try {
       const [a] = await Location.reverseGeocodeAsync(c);
-      if (a) setAddress([a.region, a.city, a.district, a.street, a.streetNumber].filter(Boolean).join(' '));
+      // 예: "서울 마포구 양화로 45" (시/도 이름은 짧게)
+      if (a) {
+        const region = a.region?.replace(/(특별시|광역시|특별자치시|특별자치도|도)$/, '');
+        setAddress([region, a.city ?? a.district, a.street, a.streetNumber].filter(Boolean).join(' '));
+      }
     } catch {
       // 주소 변환 실패해도 좌표로 저장 가능
     }
@@ -96,7 +100,7 @@ export default function NewPlaceScreen() {
     try {
       const perm = await requestLocationPermissions();
       if (perm === 'denied') return Alert.alert('위치 권한이 필요해요');
-      const res = await addPlace({ name: name.trim(), kind, radius: radiusM, ...picked });
+      const res = await addPlace({ name: name.trim(), kind, radius: radiusM, address: address || undefined, ...picked });
       if (!res.ok) Alert.alert('등록 완료', res.reason);
       router.back();
     } catch (e) {
@@ -143,16 +147,17 @@ export default function NewPlaceScreen() {
 
       {/* 상단: 닫기 + 검색 */}
       <View style={[styles.top, { paddingTop: insets.top + space.sm }]}>
-        <IconButton name="close" onPress={() => router.back()} />
+        <IconButton name="close" variant="dark" label="닫기" onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Input
+            pill
             icon="search"
             placeholder="주소 검색"
+            accessibilityLabel="주소 검색"
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={search}
             returnKeyType="search"
-            style={{ paddingVertical: 11 }}
           />
         </View>
       </View>
@@ -160,34 +165,34 @@ export default function NewPlaceScreen() {
       {/* 하단 시트 */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
         <View style={{ alignItems: 'flex-end', paddingHorizontal: space.lg, marginBottom: space.md }}>
-          <Pressable onPress={goToMyLocation} style={styles.locate}>
+          <Pressable accessibilityRole="button" accessibilityLabel="내 위치로 이동" onPress={goToMyLocation} style={styles.locate}>
             <Ionicons name="locate" size={22} color={colors.text} />
           </Pressable>
         </View>
 
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
           <View style={styles.handle} />
           {!picked ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
               <Ionicons name="finger-print-outline" size={28} color={colors.accent} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={type.title}>지도를 눌러 위치를 선택하세요</Text>
+                <Text style={type.sheetTitle}>지도를 눌러 위치를 선택하세요</Text>
                 <Text style={type.caption}>헬스장·독서실 건물 위를 눌러주세요</Text>
               </View>
             </View>
           ) : (
             <>
               <View style={{ gap: 2 }}>
-                <Text style={type.title} numberOfLines={1}>
+                <Text style={type.sheetTitle} numberOfLines={1}>
                   {address || '선택한 위치'}
                 </Text>
-                <Text style={type.caption}>
+                <Text style={type.mono}>
                   {picked.latitude.toFixed(6)}, {picked.longitude.toFixed(6)}
                 </Text>
               </View>
-              <Input icon="pricetag-outline" placeholder="장소 이름 (예: 동네 헬스장)" value={name} onChangeText={setName} />
+              <Input label="이름" placeholder="예: 동네 헬스장" accessibilityLabel="장소 이름" value={name} onChangeText={setName} />
               <Segmented
-                options={KINDS.map((k) => ({ value: k, label: KIND_LABEL[k], icon: KIND_ICON[k] }))}
+                options={KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))}
                 value={kind}
                 onChange={setKind}
               />
@@ -219,18 +224,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg + 8,
-    borderTopRightRadius: radius.lg + 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: space.lg,
-    gap: space.md,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderColor: colors.borderStrong,
+    paddingTop: 10,
+    paddingHorizontal: space.xl,
+    gap: 14,
   },
-  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.muted, marginBottom: 4 },
+  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.handle },
 });

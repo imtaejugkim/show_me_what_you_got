@@ -31,6 +31,8 @@ export type Place = {
   kind: Kind;
   latitude: number;
   longitude: number;
+  /** 지도에서 고를 때 변환한 주소 (표시용, 없을 수 있음) */
+  address?: string;
   /** 지오펜스 반경 (미터). 너무 작으면 GPS 오차 때문에 인식이 잘 안 됩니다. 100m 이상 권장 */
   radius: number;
 };

@@ -8,6 +8,8 @@ import {
   colors,
   Divider,
   EmptyState,
+  fonts,
+  ListCard,
   Input,
   Row,
   Screen,
@@ -79,7 +81,7 @@ function GroupsOnline() {
   if (!nickname) {
     return (
       <Screen title="그룹">
-        <Card style={{ gap: space.lg }}>
+        <Card size="lg" style={{ gap: space.lg }}>
           <View style={{ gap: 4 }}>
             <Text style={type.title}>닉네임을 정해주세요</Text>
             <Text style={type.caption}>그룹원들에게 보여지는 이름이에요.</Text>
@@ -102,30 +104,28 @@ function GroupsOnline() {
         {groups.length === 0 ? (
           <EmptyState icon="people-outline" title="함께할 사람을 모아보세요" body="그룹을 만들고 초대코드를 공유하거나, 받은 코드로 참여하세요." />
         ) : (
-          <Card style={{ paddingVertical: space.xs, gap: 0 }}>
+          <ListCard>
             {groups.map((g, i) => (
               <View key={g.id}>
                 {i > 0 && <Divider />}
                 <Row
                   icon="people"
-                  iconColor={colors.accent}
-                  iconBg={colors.accentSoft}
                   title={g.name}
                   subtitle={`초대코드 ${g.invite_code}`}
                   onPress={() => router.push({ pathname: '/group/[id]', params: { id: g.id, name: g.name, code: g.invite_code } })}
                 />
               </View>
             ))}
-          </Card>
+          </ListCard>
         )}
       </Section>
 
       <Section title="그룹 추가">
-        <Card style={{ gap: space.md }}>
+        <Card size="lg" style={{ gap: space.md }}>
           <Segmented
             options={[
-              { value: 'join', label: '코드로 참여', icon: 'enter-outline' },
-              { value: 'create', label: '새로 만들기', icon: 'add-circle-outline' },
+              { value: 'join', label: '코드로 참여' },
+              { value: 'create', label: '새로 만들기' },
             ]}
             value={mode}
             onChange={setMode}
@@ -139,7 +139,7 @@ function GroupsOnline() {
                 value={code}
                 onChangeText={setCode}
                 maxLength={6}
-                style={{ letterSpacing: 4, fontWeight: '700' }}
+                style={{ letterSpacing: 4, fontFamily: fonts.num }}
               />
               <Button
                 title="참여하기"

@@ -1,4 +1,4 @@
-// "장소" 화면: 등록한 장소를 지도 + 목록으로 보여주고, 지도에서 새 장소 추가
+// "장소" 화면 (시안: 장소) — 등록한 장소를 지도 + 목록으로 보여주고, 지도에서 새 장소 추가
 import { router } from 'expo-router';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Platform, View } from 'react-native';
@@ -8,7 +8,8 @@ import {
   NaverMapView,
   type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import { Button, Card, colors, Divider, EmptyState, IconButton, Pill, radius, Row, Screen, Section, space } from '../../components/ui';
+import * as Location from 'expo-location';
+import { Button, colors, Divider, EmptyState, IconButton, InfoNote, ListCard, Pill, radius, Row, Screen, Section } from '../../components/ui';
 import { handleRegionEvent } from '../../lib/geofence';
 import { removePlace } from '../../lib/places';
 import { getPlaces } from '../../lib/storage';
@@ -17,10 +18,12 @@ import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
 
 export default function PlacesScreen() {
   const [places, setPlaces] = useState<Place[]>([]);
+  const [autoDetect, setAutoDetect] = useState(true);
   const mapRef = useRef<NaverMapViewRef>(null);
 
   const load = useCallback(() => {
     getPlaces().then(setPlaces);
+    Location.getBackgroundPermissionsAsync().then((p) => setAutoDetect(p.granted));
   }, []);
   useRefreshOnChange(load);
 
@@ -78,7 +81,11 @@ export default function PlacesScreen() {
   }
 
   return (
-    <Screen title="장소" right={<IconButton name="add" accent onPress={() => router.push('/place/new')} />}>
+    <Screen
+      eyebrow={places.length === 0 ? undefined : autoDetect ? '자동 감지 켜짐' : '자동 감지 꺼짐 · 위치 권한 확인'}
+      title="장소"
+      right={<IconButton name="add" variant="accent" label="장소 추가" onPress={() => router.push('/place/new')} />}
+    >
       {places.length === 0 ? (
         <EmptyState
           icon="map-outline"
@@ -88,7 +95,7 @@ export default function PlacesScreen() {
         />
       ) : (
         <>
-          <View style={{ height: 220, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ height: 240, borderRadius: radius.lg + 4, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
             <NaverMapView
               ref={mapRef}
               style={{ flex: 1 }}
@@ -122,23 +129,23 @@ export default function PlacesScreen() {
           </View>
 
           <Section title={`내 장소 ${places.length}`}>
-            <Card style={{ paddingVertical: space.xs, gap: 0 }}>
+            <ListCard>
               {places.map((p, i) => (
                 <View key={p.id}>
                   {i > 0 && <Divider />}
                   <Row
                     icon={KIND_ICON[p.kind]}
-                    iconColor={colors.accent}
-                    iconBg={colors.accentSoft}
                     title={p.name}
-                    subtitle={`반경 ${p.radius}m`}
+                    subtitle={[p.address, `반경 ${p.radius}m`].filter(Boolean).join(' · ')}
                     right={<Pill label={KIND_LABEL[p.kind]} />}
                     onPress={() => openActions(p)}
                   />
                 </View>
               ))}
-            </Card>
+            </ListCard>
           </Section>
+
+          <InfoNote>장소에 도착하면 알림으로 시작을 물어보고, 반경을 벗어나면 자동으로 기록을 마무리해요.</InfoNote>
         </>
       )}
     </Screen>

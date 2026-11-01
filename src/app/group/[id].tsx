@@ -1,19 +1,42 @@
-// 그룹 상세: 그룹원들의 오늘 인증 현황
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+// 그룹 상세 (시안: 그룹 — 오늘 현황) — 그룹원들의 오늘 인증 현황
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
-import { Button, Card, colors, Divider, IconButton, Pill, ProgressBar, Section, space, type } from '../../components/ui';
+import {
+  Avatar,
+  Button,
+  Card,
+  colors,
+  Divider,
+  fonts,
+  IconButton,
+  ListCard,
+  Pill,
+  type PillTone,
+  ScreenHeader,
+  Section,
+  space,
+  type,
+} from '../../components/ui';
 import { getGroupToday, leaveGroup, type FeedRow } from '../../lib/groups';
 import { KIND_LABEL } from '../../lib/types';
 import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
-import { formatDuration, formatTime, formatToday, minutesBetween } from '../../lib/utils';
+import { formatDuration, formatToday, minutesBetween } from '../../lib/utils';
 
-type Member = { userId: string; nickname: string; sessions: FeedRow[] };
+type Status = 'done' | 'live' | 'none';
+type Member = { userId: string; nickname: string; sessions: FeedRow[]; status: Status; detail: string };
+
+const STATUS: Record<Status, { label: string; tone: PillTone }> = {
+  done: { label: '완료', tone: 'ok' },
+  live: { label: '진행 중', tone: 'accent' },
+  none: { label: '아직', tone: 'neutral' },
+};
 
 export default function GroupScreen() {
   const { id, name, code } = useLocalSearchParams<{ id: string; name?: string; code?: string }>();
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [, tick] = useState(0);
 
   const load = useCallback(() => {
     setRefreshing(true);
@@ -24,19 +47,44 @@ export default function GroupScreen() {
   }, [id]);
   useRefreshOnChange(load);
 
+  // 진행 중인 사람의 "N분째" 갱신
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
   // 행(멤버 x 세션) → 멤버별로 묶고, 완료 > 진행 중 > 아직 순으로 정렬
   const members = useMemo(() => {
-    const map = new Map<string, Member>();
+    const map = new Map<string, FeedRow[]>();
+    const names = new Map<string, string>();
     for (const r of rows) {
-      const m = map.get(r.user_id) ?? { userId: r.user_id, nickname: r.nickname, sessions: [] };
-      if (r.session_id) m.sessions.push(r);
-      map.set(r.user_id, m);
+      names.set(r.user_id, r.nickname);
+      const list = map.get(r.user_id) ?? [];
+      if (r.session_id) list.push(r);
+      map.set(r.user_id, list);
     }
-    const rank = (m: Member) => (m.sessions.some((s) => s.verified) ? 0 : m.sessions.some((s) => !s.ended_at) ? 1 : 2);
-    return [...map.values()].sort((a, b) => rank(a) - rank(b));
+    const order: Record<Status, number> = { done: 0, live: 1, none: 2 };
+    return [...map.entries()]
+      .map(([userId, sessions]): Member => {
+        const live = sessions.find((s) => !s.ended_at);
+        const status: Status = sessions.some((s) => s.verified) ? 'done' : live ? 'live' : 'none';
+        const shown = live ?? sessions.filter((s) => s.verified).at(-1) ?? sessions.at(-1);
+        const detail = shown
+          ? [
+              KIND_LABEL[shown.kind!],
+              shown.place_name,
+              shown.ended_at
+                ? formatDuration(minutesBetween(shown.started_at!, shown.ended_at))
+                : `${minutesBetween(shown.started_at!, null)}분째`,
+            ].join(' · ')
+          : '아직 기록이 없어요';
+        return { userId, nickname: names.get(userId) ?? '익명', sessions, status, detail };
+      })
+      .sort((a, b) => order[a.status] - order[b.status]);
   }, [rows]);
 
-  const doneCount = members.filter((m) => m.sessions.some((s) => s.verified)).length;
+  const doneCount = members.filter((m) => m.status === 'done').length;
+  const liveCount = members.filter((m) => m.status === 'live').length;
 
   function share() {
     if (code) Share.share({ message: `Show Me What You Got 에서 같이 증명하자! 초대코드: ${code}` });
@@ -45,69 +93,64 @@ export default function GroupScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 48 }}
+      contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: space.sm, paddingBottom: 48, gap: space.lg }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} tintColor={colors.text} />}
     >
-      <Stack.Screen options={{ headerRight: () => (code ? <IconButton name="share-outline" onPress={share} /> : null) }} />
+      <ScreenHeader
+        eyebrow={formatToday()}
+        title={name ?? '그룹'}
+        right={code ? <IconButton name="share-outline" label="초대코드 공유" onPress={share} /> : undefined}
+      />
 
-      <View style={{ gap: 2 }}>
-        <Text style={type.caption}>{formatToday()}</Text>
-        <Text style={type.largeTitle}>{name ?? '그룹'}</Text>
-      </View>
-
-      <Card style={{ gap: space.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text style={type.display}>{doneCount}</Text>
-          <Text style={[type.title, { color: colors.sub }]}>/ {members.length}명 증명 완료</Text>
+      <Card size="lg" style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+          <Text style={type.displaySm}>{doneCount}</Text>
+          <Text style={{ color: colors.sub, fontFamily: fonts.semibold, fontSize: 18 }}>/ {members.length}명 증명 완료</Text>
         </View>
-        <ProgressBar value={members.length ? doneCount / members.length : 0} />
-        {code ? <Text style={type.caption}>초대코드 {code}</Text> : null}
+        {/* 멤버 한 명당 한 칸: 완료 = 라임, 진행 중 = 옅은 라임, 아직 = 회색 */}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {members.map((m) => (
+            <View
+              key={m.userId}
+              style={{
+                flex: 1,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: m.status === 'done' ? colors.accent : m.status === 'live' ? colors.accentFaint : colors.track,
+              }}
+            />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          {code ? (
+            <Text style={type.caption}>
+              초대코드 <Text style={{ fontFamily: fonts.num, letterSpacing: 2, color: colors.text }}>{code}</Text>
+            </Text>
+          ) : (
+            <View />
+          )}
+          <Text style={type.caption}>{liveCount > 0 ? `${liveCount}명 진행 중` : ''}</Text>
+        </View>
       </Card>
 
       <Section title="멤버">
-        <Card style={{ paddingVertical: space.xs, gap: 0 }}>
-          {members.map((m, i) => {
-            const live = m.sessions.find((s) => !s.ended_at);
-            const verified = m.sessions.some((s) => s.verified);
-            const last = m.sessions[m.sessions.length - 1];
-            return (
-              <View key={m.userId}>
-                {i > 0 && <Divider />}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 12 }}>
-                  <View
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: verified ? colors.accent : colors.surfaceHigh,
-                    }}
-                  >
-                    <Text style={{ color: verified ? colors.onAccent : colors.text, fontWeight: '800', fontSize: 16 }}>
-                      {m.nickname.slice(0, 1)}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={type.bodyStrong}>{m.nickname}</Text>
-                    <Text style={type.caption} numberOfLines={1}>
-                      {last
-                        ? `${KIND_LABEL[last.kind!]} · ${last.place_name} · ${formatTime(last.started_at!)} · ${formatDuration(minutesBetween(last.started_at!, last.ended_at))}`
-                        : '아직 기록이 없어요'}
-                    </Text>
-                  </View>
-                  {live ? (
-                    <Pill label="진행 중" tone="accent" />
-                  ) : verified ? (
-                    <Pill label="완료" tone="ok" icon="checkmark" />
-                  ) : (
-                    <Pill label="아직" />
-                  )}
+        <ListCard>
+          {members.map((m, i) => (
+            <View key={m.userId}>
+              {i > 0 && <Divider inset={0} />}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 12 }}>
+                <Avatar name={m.nickname} active={m.status === 'done'} />
+                <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                  <Text style={type.bodyStrong}>{m.nickname}</Text>
+                  <Text style={[type.caption, { lineHeight: undefined }]} numberOfLines={1}>
+                    {m.detail}
+                  </Text>
                 </View>
+                <Pill label={STATUS[m.status].label} tone={STATUS[m.status].tone} />
               </View>
-            );
-          })}
-        </Card>
+            </View>
+          ))}
+        </ListCard>
       </Section>
 
       <Button
