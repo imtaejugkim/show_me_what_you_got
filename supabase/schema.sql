@@ -134,6 +134,16 @@ returns table (
   order by m.joined_at, s.started_at;
 $$;
 
+-- ---------- 함수 실행 권한 ----------
+-- 로그인하지 않은(anon) 호출자는 막고, 로그인 사용자(익명 로그인 포함 = authenticated)만 허용
+revoke execute on function public.is_group_member(uuid) from public, anon;
+revoke execute on function public.shares_group_with(uuid) from public, anon;
+revoke execute on function public.create_group(text) from public, anon;
+revoke execute on function public.join_group(text) from public, anon;
+revoke execute on function public.group_today(uuid, timestamptz) from public, anon;
+
+grant execute on function public.is_group_member(uuid) to authenticated;
+grant execute on function public.shares_group_with(uuid) to authenticated;
 grant execute on function public.create_group(text) to authenticated;
 grant execute on function public.join_group(text) to authenticated;
 grant execute on function public.group_today(uuid, timestamptz) to authenticated;
