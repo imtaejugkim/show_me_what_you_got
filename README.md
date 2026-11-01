@@ -12,7 +12,7 @@
 | 화면 이동 | **Expo Router** (파일 기반 라우팅) | Navigation Component |
 | 장소 도착/이탈 감지 | `expo-location` 지오펜싱 + `expo-task-manager` | GeofencingClient + BroadcastReceiver |
 | 알림 | `expo-notifications` (액션 버튼 포함) | NotificationCompat + Action |
-| 지도 | `react-native-maps` (Android: Google, iOS: Apple) | Maps SDK |
+| 지도 | 네이버 지도 (`@mj-studio/react-native-naver-map`) | Naver Map SDK |
 | 기기 저장소 | AsyncStorage | SharedPreferences |
 | 서버(그룹/로그인/DB) | **Supabase** (Postgres + 익명 로그인) | Firebase 같은 BaaS |
 
@@ -29,7 +29,7 @@ src/
     (tabs)/_layout.tsx    #   하단 탭
     (tabs)/index.tsx      #   오늘 (진행 중 세션, 오늘 증명)
     (tabs)/places.tsx     #   장소 목록 + 지도
-    place/new.tsx         #   지도에서 장소 고르기
+    place/new.tsx         #   네이버 지도에서 탭해서 장소 고르기
     (tabs)/groups.tsx     #   그룹 목록/생성/참여
     group/[id].tsx        #   그룹 상세 (멤버별 오늘 현황)
   lib/                    # 🧠 로직
@@ -89,19 +89,19 @@ src/
    ```
    `.env` 는 git에 올라가지 않습니다. 값을 바꾸면 `npx expo start -c` 로 캐시 지우고 재시작하세요.
 
-## 2-1. 지도 설정 (안드로이드) — Google Maps API 키
+## 2-1. 지도 설정 — 네이버 지도 Client ID
 
-장소는 지도에서 고릅니다. **iOS 는 Apple 지도라 키가 필요 없고**, 안드로이드는 Google Maps 키가 필요해요. 키가 없으면 지도가 회색으로 나옵니다 (다른 기능은 정상 동작).
+장소는 **네이버 지도**에서 현재 위치를 중심으로 띄운 뒤, 지도를 탭한 좌표로 등록합니다. 키가 없으면 지도가 표시되지 않아요 (다른 기능은 정상).
 
-1. https://console.cloud.google.com → 프로젝트 생성 (결제 계정 연결 필요. Android 지도 SDK 자체는 무료)
-2. **API 및 서비스 → 라이브러리 → "Maps SDK for Android"** 사용 설정
-3. **사용자 인증 정보 → 사용자 인증 정보 만들기 → API 키**
-   - (권장) 키 제한: Android 앱 → 패키지 이름 `com.imtaejugkim.showmewhatyougot` + 디버그 키스토어 SHA-1
-4. `.env` 에 추가:
+1. https://www.ncloud.com 가입 → 콘솔 → **Services → Application Services → Maps**
+2. **Application 등록** → Dynamic Map 선택
+   - Android 앱 패키지 이름: `com.imtaejugkim.showmewhatyougot`
+   - iOS Bundle ID: `com.imtaejugkim.showmewhatyougot`
+3. 생성된 Application 의 **Client ID** 복사 → `.env` 에 추가:
    ```
-   GOOGLE_MAPS_ANDROID_API_KEY=발급받은키
+   NAVER_MAP_CLIENT_ID=복사한ClientID
    ```
-5. 키는 네이티브 설정이라 **다시 빌드**해야 반영됩니다: `npx expo run:android`
+4. 네이티브 설정이라 **다시 빌드**해야 반영됩니다: `npx expo run:android`
 
 ## 3. 실행하기 (개발 빌드)
 
@@ -138,7 +138,7 @@ npx expo run:android
 ## 4. 테스트 방법
 
 ### 빠른 테스트 (실제로 안 움직여도 됨)
-1. **장소** 탭 → 오른쪽 위 **+** → 지도를 움직여 핀을 맞추거나 주소 검색 → 이름/종류/반경 선택 → **이 위치로 등록**
+1. **장소** 탭 → 오른쪽 위 **+** → 현재 위치 중심 지도에서 원하는 곳을 **탭** (또는 주소 검색) → 이름/종류/반경 선택 → **이 위치로 등록**
 2. 위치 권한은 **"항상 허용"** 선택 (안드로이드 11+는 설정 화면으로 이동함)
 3. 장소 목록에서 장소를 눌러 **🧪 도착 테스트** → 알림이 뜨면 **시작하기**
 4. **오늘** 탭에서 진행 중 확인 → 장소 메뉴의 **🧪 이탈 테스트** 또는 **종료하기**
