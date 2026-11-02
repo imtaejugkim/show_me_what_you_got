@@ -18,7 +18,10 @@ export const KIND_ICON = {
   study: 'book',
 } as const satisfies Record<Kind, string>;
 
-/** 이 시간(분) 이상 머물러야 "증명 완료"로 인정합니다. 나중에 그룹별 설정으로 바꿔도 됩니다. */
+/**
+ * 이 시간(분) 이상 머물러야 "증명 완료"로 인정합니다.
+ * ⚠️ 서버(supabase/schema.sql 의 private.sessions_validate)도 같은 기준으로 다시 판정하므로, 바꿀 때는 둘 다 바꿔야 합니다.
+ */
 export const MIN_MINUTES: Record<Kind, number> = {
   workout: 30,
   study: 60,
