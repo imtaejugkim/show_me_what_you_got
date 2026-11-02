@@ -2,7 +2,7 @@
 import { emitDataChanged } from './events';
 import { notifyFinished } from './notifications';
 import * as store from './storage';
-import { ensureSignedIn, supabase } from './supabase';
+import { currentUserId, supabase } from './supabase';
 import { MIN_MINUTES, type Kind, type Place, type Session } from './types';
 import { minutesBetween, startOfToday, uuid } from './utils';
 
@@ -59,7 +59,7 @@ export async function getTodaySessions(): Promise<Session[]> {
 /** 아직 서버에 안 올라간 기록들을 업로드 (네트워크 실패해도 다음에 다시 시도) */
 export async function syncSessions() {
   if (!supabase) return;
-  const userId = await ensureSignedIn();
+  const userId = await currentUserId(); // 로그인 전이면 기기에만 저장해 두고 나중에 업로드
   if (!userId) return;
 
   const active = await store.getActiveSession();

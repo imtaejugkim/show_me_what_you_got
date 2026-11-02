@@ -5,6 +5,7 @@ import { IBMPlexSansKR_600SemiBold } from '@expo-google-fonts/ibm-plex-sans-kr/6
 import { IBMPlexSansKR_700Bold } from '@expo-google-fonts/ibm-plex-sans-kr/700Bold';
 import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medium';
 import { SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk/600SemiBold';
+import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { SplashScreen, Stack } from 'expo-router';
@@ -16,6 +17,7 @@ import { colors, fonts } from '../components/ui';
 import { emitDataChanged } from '../lib/events';
 import { requestNotificationPermission, setupNotifications } from '../lib/notifications';
 import { handleNotificationResponse } from '../lib/responses';
+import { SessionProvider, useSession } from '../lib/session';
 import { syncSessions } from '../lib/sessions';
 
 SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
@@ -30,11 +32,9 @@ export default function RootLayout() {
     IBMPlexSansKR_700Bold,
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
   });
   const ready = fontsLoaded || !!fontError;
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
-  }, [ready]);
 
   // 앱이 꺼진 상태에서 알림을 눌러 앱이 켜진 경우
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -43,7 +43,8 @@ export default function RootLayout() {
   }, [lastResponse]);
 
   useEffect(() => {
-    setupNotifications().then(requestNotificationPermission).catch(console.warn);
+    // 알림 버튼/채널만 준비. 권한은 로그인 후 메인 화면에 들어갈 때 물어본다 (온보딩 위에 뜨지 않게)
+    setupNotifications().catch(console.warn);
 
     // 앱이 켜져 있을 때 알림을 누른 경우
     const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
@@ -66,6 +67,27 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
+    <SessionProvider>
+      <RootNavigator />
+    </SessionProvider>
+  );
+}
+
+/** 로그인 상태에 따라 보여줄 화면 묶음을 고른다 */
+function RootNavigator() {
+  const { status, onboardingSeen } = useSession();
+
+  useEffect(() => {
+    if (status !== 'loading') SplashScreen.hideAsync().catch(() => {});
+    if (status === 'ready') {
+      requestNotificationPermission().catch(() => {});
+      syncSessions().catch(() => {}); // 로그인 전에 쌓인 기록 업로드
+    }
+  }, [status]);
+
+  if (status === 'loading') return null; // 스플래시가 계속 보임
+
+  return (
     <>
       <StatusBar style="light" />
       <Stack
@@ -77,9 +99,23 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="group/[id]" options={{ title: '', headerBackTitle: '그룹' }} />
-        <Stack.Screen name="place/new" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Protected guard={status === 'signedOut'}>
+          <Stack.Protected guard={!onboardingSeen}>
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          </Stack.Protected>
+          <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={status === 'needsProfile'}>
+          <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={status === 'ready'}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="group/[id]" options={{ title: '', headerBackTitle: '그룹' }} />
+          <Stack.Screen name="place/new" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="profile" options={{ title: '프로필', presentation: 'modal' }} />
+        </Stack.Protected>
       </Stack>
     </>
   );

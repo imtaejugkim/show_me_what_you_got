@@ -20,16 +20,18 @@ export const supabase: SupabaseClient | null =
 
 export const isServerEnabled = supabase !== null;
 
-/**
- * 로그인 화면 없이 바로 쓸 수 있도록 "익명 로그인"을 사용합니다.
- * (Supabase 대시보드 > Authentication > Sign In / Providers 에서 Anonymous sign-ins 를 켜야 합니다)
- * 나중에 카카오/애플/구글 로그인으로 계정을 연결(link)할 수 있습니다.
- */
-export async function ensureSignedIn(): Promise<string | null> {
+/** 지금 로그인한 사용자 ID (로그인 안 했으면 null). 익명 계정은 로그인으로 치지 않음 */
+export async function currentUserId(): Promise<string | null> {
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
-  if (data.session) return data.session.user.id;
-  const { data: signIn, error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
-  return signIn.user?.id ?? null;
+  const user = data.session?.user;
+  if (!user || user.is_anonymous) return null;
+  return user.id;
+}
+
+/** 로그인이 꼭 필요한 작업에서 사용 */
+export async function requireUserId(): Promise<string> {
+  const uid = await currentUserId();
+  if (!uid) throw new Error('로그인이 필요해요.');
+  return uid;
 }
