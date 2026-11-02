@@ -77,7 +77,7 @@ export default function GroupScreen() {
                 ? formatDuration(minutesBetween(shown.started_at!, shown.ended_at))
                 : `${minutesBetween(shown.started_at!, null)}분째`,
             ].join(' · ')
-          : '아직 기록이 없어요';
+          : '아직 아무것도 안 함';
         return { userId, nickname: names.get(userId) ?? '익명', sessions, status, detail };
       })
       .sort((a, b) => order[a.status] - order[b.status]);
@@ -87,7 +87,7 @@ export default function GroupScreen() {
   const liveCount = members.filter((m) => m.status === 'live').length;
 
   function share() {
-    if (code) Share.share({ message: `Show Me What You Got 에서 같이 증명하자! 초대코드: ${code}` });
+    if (code) Share.share({ message: `말로만 하지 말고 증명하자. Show Me What You Got 초대코드: ${code}` });
   }
 
   return (
@@ -157,7 +157,7 @@ export default function GroupScreen() {
         title="그룹 나가기"
         variant="ghost"
         onPress={() =>
-          Alert.alert('그룹을 나갈까요?', undefined, [
+          Alert.alert('진짜 나갈 거야?', '나가면 같이 한 약속도 여기서 끝이다.', [
             { text: '취소', style: 'cancel' },
             {
               text: '나가기',

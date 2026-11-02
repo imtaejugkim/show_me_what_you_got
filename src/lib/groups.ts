@@ -57,7 +57,7 @@ export async function joinGroup(code: string): Promise<Group> {
   const { data, error } = await sb
     .rpc('join_group', { p_code: code.trim().toUpperCase() })
     .single<Group>();
-  if (error) throw new Error(error.message.includes('invalid') ? '없는 초대코드예요.' : error.message);
+  if (error) throw new Error(error.message.includes('invalid') ? '그런 초대코드 없다.' : error.message);
   return data;
 }
 

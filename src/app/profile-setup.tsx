@@ -43,8 +43,8 @@ export default function ProfileSetup() {
     >
       <View style={{ flex: 1, gap: 28 }}>
         <View style={{ gap: 8 }}>
-          <Text style={type.largeTitle}>닉네임을 정해주세요</Text>
-          <Text style={type.caption}>그룹원들에게 보여지는 이름이에요. 나중에 프로필에서 바꿀 수 있어요.</Text>
+          <Text style={type.largeTitle}>뭐라고 부를까</Text>
+          <Text style={type.caption}>그룹원들한테 보이는 이름이다. 나중에 프로필에서 바꿀 수 있어.</Text>
         </View>
         <View style={{ alignItems: 'center' }}>
           <Avatar name={name.trim() || '?'} active size={88} />
@@ -60,7 +60,7 @@ export default function ProfileSetup() {
           onSubmitEditing={() => name.trim() && save()}
         />
       </View>
-      <Button title="시작하기" onPress={save} loading={busy} disabled={!name.trim()} />
+      <Button title="이걸로 간다" onPress={save} loading={busy} disabled={!name.trim()} />
     </KeyboardAvoidingView>
   );
 }

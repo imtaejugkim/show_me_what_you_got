@@ -30,7 +30,7 @@ export default function Login() {
         <Logo size={132} />
         <View style={{ alignItems: 'center', gap: 8 }}>
           <Text style={[type.largeTitle, { fontSize: 26 }]}>SHOW ME WHAT YOU GOT</Text>
-          <Text style={[type.caption, { fontSize: 15 }]}>오늘도 증명하러 가볼까요?</Text>
+          <Text style={[type.caption, { fontSize: 15 }]}>오늘도 증명해라.</Text>
         </View>
       </View>
       <View style={{ gap: 12 }}>
