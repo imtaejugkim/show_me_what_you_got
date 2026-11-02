@@ -26,8 +26,9 @@ import {
 import { requestLocationPermissions, syncGeofences } from '../../lib/geofence';
 import { haptic } from '../../lib/haptics';
 import { GPS_MARGIN_M } from '../../lib/places';
-import { getGroupToday, getMyNickname, listMyGroups, type Group } from '../../lib/groups';
+import { getGroupToday, listMyGroups, type Group } from '../../lib/groups';
 import { endSession, getTodaySessions, startSession } from '../../lib/sessions';
+import { useSession } from '../../lib/session';
 import { getStreakStats, type WeekDay } from '../../lib/stats';
 import { getActiveSession, getPlaces } from '../../lib/storage';
 import { isServerEnabled } from '../../lib/supabase';
@@ -43,7 +44,7 @@ export default function TodayScreen() {
   const [today, setToday] = useState<Session[]>([]);
   const [streak, setStreak] = useState<{ streak: number; week: WeekDay[] }>({ streak: 0, week: [] });
   const [groupSummary, setGroupSummary] = useState<GroupSummary | null>(null);
-  const [nickname, setNickname] = useState<string | null>(null);
+  const { nickname } = useSession();
   const [bgGranted, setBgGranted] = useState(true);
   const [, tick] = useState(0);
   const [busy, setBusy] = useState<Kind | 'end' | null>(null);
@@ -57,7 +58,6 @@ export default function TodayScreen() {
     getStreakStats().then(setStreak);
     Location.getBackgroundPermissionsAsync().then((p) => setBgGranted(p.granted));
     if (isServerEnabled) loadGroupSummary().then(setGroupSummary).catch(() => {});
-    if (isServerEnabled) getMyNickname().then(setNickname).catch(() => {});
   }, []);
   useRefreshOnChange(load);
 
@@ -143,11 +143,11 @@ export default function TodayScreen() {
       title="오늘의 증명"
       right={
         nickname ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="내 프로필" onPress={() => router.push('/groups')}>
+          <Pressable accessibilityRole="button" accessibilityLabel="내 프로필" onPress={() => router.push('/profile')}>
             <Avatar name={nickname} size={44} ring={colors.borderStrong} />
           </Pressable>
         ) : (
-          <IconButton name="person-outline" label="내 프로필" onPress={() => router.push('/groups')} />
+          <IconButton name="person-outline" label="내 프로필" onPress={() => router.push('/profile')} />
         )
       }
     >

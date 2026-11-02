@@ -82,7 +82,8 @@
 
 - 기록은 **기기에 먼저 저장**(AsyncStorage)하고, 네트워크가 될 때 서버로 동기화합니다. 앱이 꺼진 상태에서 실행되는 백그라운드 작업도 기기 저장소만으로 동작합니다.
 - 수동 시작은 **등록한 장소 반경 안에 있을 때만** 가능합니다. 그래야 "증명"이니까요.
-- 서버 없이도 혼자 모드(장소 등록, 자동 감지, 증명 기록)로 동작하며, 그룹 기능만 서버가 필요합니다.
+- 처음 실행하면 온보딩 → 카카오 로그인 → 닉네임 설정을 거쳐 시작합니다. 닉네임은 카카오 닉네임으로 미리 채워지고, 프로필에서 언제든 바꿀 수 있습니다.
+- 증명 완료 여부는 서버에서 시작·종료 시각으로 다시 판정하므로, 앱을 조작해도 기록을 위조할 수 없습니다.
 
 <br>
 
@@ -95,7 +96,8 @@
 | **위치 감지** | `expo-location` (지오펜싱) · `expo-task-manager` | 장소 도착/이탈 감지, 앱이 꺼져 있을 때 백그라운드 실행 |
 | **알림** | `expo-notifications` | 도착 알림(시작/패스 버튼), 증명 완료 알림 (기기 내 로컬 알림) |
 | **지도** | 네이버 지도 (`@mj-studio/react-native-naver-map`) | 장소 선택, 등록 장소 표시 |
-| **서버** | Supabase (Postgres · Auth · RLS) | 익명 로그인, 그룹, 기록 공유. 같은 그룹끼리만 조회 가능하도록 행 단위 권한 적용 |
+| **로그인** | 카카오 로그인 (Supabase Auth OAuth) | 온보딩 후 카카오로 시작, 닉네임은 카카오 닉네임으로 자동 채움 |
+| **서버** | Supabase (Postgres · Auth · RLS, 서울 리전) | 그룹, 기록 공유. 같은 그룹끼리만 조회 가능한 행 단위 권한, 서버 측 증명 판정 |
 | **기기 저장소** | AsyncStorage | 장소, 진행 중 세션, 기록 |
 | **디자인** | Claude Design · IBM Plex Sans KR · Space Grotesk · Ionicons | 시안 제작, 글꼴, 아이콘 |
 | **빌드/배포** | Expo 개발 빌드 · EAS Build/Submit | 로컬 실기기 테스트, 스토어/TestFlight 배포 |
@@ -116,7 +118,11 @@ show_me_what_you_got/
 ├── docs/screenshots/           # README 이미지
 └── src/
     ├── app/                    # 📱 화면 (Expo Router)
-    │   ├── _layout.tsx         #   최상위: 글꼴 로딩, 알림 응답 처리, 서버 동기화
+    │   ├── _layout.tsx         #   최상위: 글꼴, 로그인 상태별 화면 분기, 알림 응답, 서버 동기화
+    │   ├── onboarding.tsx      #   온보딩 (앱 소개 3장)
+    │   ├── login.tsx           #   카카오 로그인
+    │   ├── profile-setup.tsx   #   첫 로그인 후 닉네임 정하기
+    │   ├── profile.tsx         #   프로필: 닉네임 수정, 로그아웃
     │   ├── (tabs)/
     │   │   ├── _layout.tsx     #   하단 탭 (오늘 / 장소 / 그룹)
     │   │   ├── index.tsx       #   오늘: 연속 기록, 진행 중 세션, 현황, 그룹 요약
@@ -125,7 +131,8 @@ show_me_what_you_got/
     │   ├── place/new.tsx       #   장소 선택 (네이버 지도 탭)
     │   └── group/[id].tsx      #   그룹 상세: 멤버별 오늘 현황
     ├── components/
-    │   └── ui.tsx              # 🎨 디자인 시스템 (색 · 글꼴 · 버튼 · 카드 · 세그먼트 등)
+    │   ├── ui.tsx              # 🎨 디자인 시스템 (색 · 글꼴 · 버튼 · 카드 · 세그먼트 등)
+    │   └── brand.tsx           #   로고, 카카오 로그인 버튼
     └── lib/                    # 🧠 로직
         ├── geofence.ts         #   지오펜스 등록, 도착 → 알림 / 이탈 → 자동 종료
         ├── sessions.ts         #   세션 시작 · 종료 · 증명 판정 · 서버 동기화
@@ -134,7 +141,10 @@ show_me_what_you_got/
         ├── places.ts           #   장소 추가/삭제 + 지오펜스 갱신
         ├── stats.ts            #   연속 기록, 이번 주 현황 계산
         ├── groups.ts           #   그룹 API (생성 · 참여 · 오늘 현황)
-        ├── supabase.ts         #   서버 클라이언트, 익명 로그인
+        ├── auth.ts             #   카카오 로그인 / 로그아웃
+        ├── session.tsx         #   로그인 상태 (로그아웃 / 닉네임 필요 / 준비 완료)
+        ├── haptics.ts          #   진동 규칙
+        ├── supabase.ts         #   서버 클라이언트
         ├── storage.ts          #   기기 저장소
         ├── types.ts            #   타입, 최소 인증 시간(MIN_MINUTES)
         └── utils.ts            #   거리 계산, 시간 포맷 등

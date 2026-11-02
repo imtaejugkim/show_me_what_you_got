@@ -1,7 +1,7 @@
-// "그룹" 화면: 닉네임 설정, 그룹 만들기/참여, 내 그룹 목록
+// "그룹" 화면: 그룹 만들기/참여, 내 그룹 목록 (닉네임은 로그인 직후 정함)
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import {
   Button,
   Card,
@@ -16,13 +16,10 @@ import {
   Section,
   Segmented,
   space,
-  type,
 } from '../../components/ui';
-import { AccountCard, handleKakaoResult, KakaoButton } from '../../components/AccountCard';
-import { signInWithKakao } from '../../lib/auth';
-import { emitDataChanged } from '../../lib/events';
-import { createGroup, getMyNickname, joinGroup, listMyGroups, setNickname, type Group } from '../../lib/groups';
+import { createGroup, joinGroup, listMyGroups, type Group } from '../../lib/groups';
 import { haptic } from '../../lib/haptics';
+import { useSession } from '../../lib/session';
 import { isServerEnabled } from '../../lib/supabase';
 import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
 
@@ -43,8 +40,7 @@ export default function GroupsScreen() {
 
 function GroupsOnline() {
   const [loading, setLoading] = useState(true);
-  const [nickname, setNick] = useState<string | null>(null);
-  const [nickInput, setNickInput] = useState('');
+  const { nickname } = useSession();
   const [groups, setGroups] = useState<Group[]>([]);
   const [mode, setMode] = useState<'join' | 'create'>('join');
   const [newName, setNewName] = useState('');
@@ -52,28 +48,12 @@ function GroupsOnline() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    Promise.all([getMyNickname(), listMyGroups()])
-      .then(([n, g]) => {
-        setNick(n);
-        setGroups(g);
-      })
+    listMyGroups()
+      .then(setGroups)
       .catch((e) => Alert.alert('서버 오류', String(e?.message ?? e)))
       .finally(() => setLoading(false));
   }, []);
   useRefreshOnChange(load);
-
-  // 다른 기기에서 쓰던 카카오 계정으로 로그인 (취소하면 아무 일도 없음)
-  async function kakaoLogin() {
-    setBusy(true);
-    try {
-      await handleKakaoResult(await signInWithKakao(), emitDataChanged);
-    } catch (e) {
-      haptic.error();
-      Alert.alert('로그인 실패', String((e as Error)?.message ?? e));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -97,38 +77,8 @@ function GroupsOnline() {
     );
   }
 
-  if (!nickname) {
-    return (
-      <Screen title="그룹">
-        <Card size="lg" style={{ gap: space.lg }}>
-          <View style={{ gap: 4 }}>
-            <Text style={type.title}>닉네임을 정해주세요</Text>
-            <Text style={type.caption}>그룹원들에게 보여지는 이름이에요.</Text>
-          </View>
-          <Input icon="person-outline" placeholder="닉네임" value={nickInput} onChangeText={setNickInput} maxLength={20} />
-          <Button
-            title="시작하기"
-            loading={busy}
-            disabled={!nickInput.trim()}
-            onPress={() => run(() => setNickname(nickInput.trim()))}
-          />
-        </Card>
-        <Card style={{ gap: space.md }}>
-          <Text style={type.caption}>다른 기기에서 카카오로 연결해 둔 계정이 있다면</Text>
-          <KakaoButton
-            title="카카오로 로그인"
-            loading={busy}
-            onPress={kakaoLogin}
-          />
-        </Card>
-      </Screen>
-    );
-  }
-
   return (
     <Screen eyebrow={`${nickname} 님`} title="그룹">
-      <AccountCard />
-
       <Section title="내 그룹">
         {groups.length === 0 ? (
           <EmptyState icon="people-outline" title="함께할 사람을 모아보세요" body="그룹을 만들고 초대코드를 공유하거나, 받은 코드로 참여하세요." />
