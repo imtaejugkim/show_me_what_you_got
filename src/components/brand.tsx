@@ -1,41 +1,20 @@
 // 브랜드 요소: 로고(SHOW ME.), 카카오 로그인 버튼
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { colors, fonts } from './ui';
+import { ActivityIndicator, Image, Pressable, Text } from 'react-native';
+import { fonts } from './ui';
 
-/** 앱 아이콘과 같은 로고. size = 한 변 길이 */
+/**
+ * 로고 = 앱 아이콘 이미지 그대로 (assets/icon.png).
+ * 글자로 그리면 기기마다 글꼴 크기 계산이 달라 줄바꿈되거나 잘려서 이미지를 씀.
+ */
 export function Logo({ size = 120 }: { size?: number }) {
-  const k = size / 280; // Claude Design 시안(280px) 기준 비율
   return (
-    <View
+    <Image
+      source={require('../../assets/icon.png')}
       accessibilityRole="image"
       accessibilityLabel="SHOW ME WHAT YOU GOT 로고"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 64 * k,
-        backgroundColor: colors.accent,
-        justifyContent: 'flex-end',
-        paddingHorizontal: 34 * k,
-        paddingBottom: 44 * k,
-      }}
-    >
-      {['SHOW', 'ME.'].map((line) => (
-        <Text
-          key={line}
-          style={{
-            fontFamily: fonts.numBold,
-            fontSize: 86 * k,
-            lineHeight: 86 * k * 0.9,
-            letterSpacing: -4.5 * k,
-            color: colors.onAccent,
-            includeFontPadding: false,
-          }}
-        >
-          {line}
-        </Text>
-      ))}
-    </View>
+      style={{ width: size, height: size, borderRadius: size * 0.2286 }}
+    />
   );
 }
 
