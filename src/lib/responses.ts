@@ -32,10 +32,10 @@ export async function handleNotificationResponse(res: Notifications.Notification
   if (check ? !check.near : !fresh) {
     haptic.error();
     Alert.alert(
-      '아직 거기 아니잖아',
+      '장소 밖이에요',
       check
-        ? `"${place.name}"까지 ${Math.round(check.distance)}m 남았다. 도착해서 다시 눌러.`
-        : '지금 위치도 못 잡았고 알림도 너무 오래됐어. 장소 가서 다시 시작해.',
+        ? `"${place.name}"에서 약 ${Math.round(check.distance)}m 떨어져 있어서 시작할 수 없어요.`
+        : '현재 위치를 확인할 수 없고 알림이 오래돼서 시작하지 않았어요. 장소에서 다시 시작해 주세요.',
     );
     return;
   }

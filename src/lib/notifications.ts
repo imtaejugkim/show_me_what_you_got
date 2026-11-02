@@ -30,7 +30,7 @@ export async function setupNotifications() {
 
   // "도착했어요" 알림에 붙는 버튼 2개
   await Notifications.setNotificationCategoryAsync(ARRIVAL_CATEGORY, [
-    { identifier: ACTION_START, buttonTitle: '시작한다', options: { opensAppToForeground: true } },
+    { identifier: ACTION_START, buttonTitle: '시작하기', options: { opensAppToForeground: true } },
     { identifier: ACTION_LATER, buttonTitle: '오늘은 패스', options: { opensAppToForeground: false } },
   ]);
 }
@@ -51,8 +51,8 @@ function show(content: Notifications.NotificationContentInput) {
 
 export function notifyArrival(place: Place) {
   return show({
-    title: `${KIND_EMOJI[place.kind]} ${place.name} 도착.`,
-    body: `왔으면 ${KIND_LABEL[place.kind]} 시작해. 오늘도 증명해라.`,
+    title: `${KIND_EMOJI[place.kind]} ${place.name} 도착!`,
+    body: `오늘 ${KIND_LABEL[place.kind]} 시작할까요? 오늘도 증명해라.`,
     categoryIdentifier: ARRIVAL_CATEGORY,
     data: { type: 'arrival', placeId: place.id },
   });
@@ -64,8 +64,8 @@ export function notifyFinished(s: Session) {
   return show({
     title: s.verified ? `✅ 오늘 ${KIND_LABEL[s.kind]} 증명 완료. 잘했다.` : `⚠️ ${KIND_LABEL[s.kind]} 시간 부족. 인정 못 한다.`,
     body: s.verified
-      ? `${s.placeName}에서 ${formatDuration(minutes)} 버텼다.`
-      : `${formatDuration(minutes)} 했어. 최소 ${need}분은 채워야 인정.`,
+      ? `${s.placeName}에서 ${formatDuration(minutes)} 했어요.`
+      : `${formatDuration(minutes)} 기록됨 (최소 ${need}분 필요)`,
     data: { type: 'finished', sessionId: s.id },
   });
 }

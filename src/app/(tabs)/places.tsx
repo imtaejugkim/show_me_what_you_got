@@ -56,7 +56,7 @@ export default function PlacesScreen() {
       label: '삭제',
       destructive: true,
       run: () =>
-        Alert.alert(`"${p.name}" 삭제`, '이 장소는 더 이상 감지 안 한다.', [
+        Alert.alert(`"${p.name}" 삭제`, '이 장소의 자동 감지가 중단돼요.', [
           { text: '취소', style: 'cancel' },
           { text: '삭제', style: 'destructive', onPress: () => removePlace(p.id) },
         ]),
@@ -89,8 +89,8 @@ export default function PlacesScreen() {
       {places.length === 0 ? (
         <EmptyState
           icon="map-outline"
-          title="어디서 증명할 건지 정해"
-          body="헬스장, 독서실 등록해 둬. 도착하면 알려주고, 떠나면 알아서 기록 끝낸다."
+          title="자주 가는 장소를 등록하세요"
+          body="헬스장이나 독서실에 도착하면 자동으로 알려드리고, 떠나면 기록을 마무리해요."
           action={<Button title="지도에서 장소 추가" icon="add" onPress={() => router.push('/place/new')} style={{ alignSelf: 'stretch' }} />}
         />
       ) : (
@@ -145,7 +145,7 @@ export default function PlacesScreen() {
             </ListCard>
           </Section>
 
-          <InfoNote>도착하면 시작할지 물어보고, 반경 벗어나면 알아서 기록 끝낸다. 도망 못 간다.</InfoNote>
+          <InfoNote>장소에 도착하면 알림으로 시작을 물어보고, 반경을 벗어나면 자동으로 기록을 마무리해요.</InfoNote>
         </>
       )}
     </Screen>

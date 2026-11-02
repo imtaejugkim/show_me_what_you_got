@@ -78,10 +78,10 @@ function GroupsOnline() {
   }
 
   return (
-    <Screen eyebrow={nickname ?? undefined} title="그룹">
+    <Screen eyebrow={`${nickname} 님`} title="그룹">
       <Section title="내 그룹">
         {groups.length === 0 ? (
-          <EmptyState icon="people-outline" title="혼자 하면 또 미룬다" body="그룹 만들고 초대코드 뿌려. 코드 받았으면 바로 들어와." />
+          <EmptyState icon="people-outline" title="혼자 하면 또 미룬다" body="그룹을 만들고 초대코드를 공유하거나, 받은 코드로 참여하세요." />
         ) : (
           <ListCard>
             {groups.map((g, i) => (
@@ -121,7 +121,7 @@ function GroupsOnline() {
                 style={{ letterSpacing: 4, fontFamily: fonts.num }}
               />
               <Button
-                title="들어간다"
+                title="참여하기"
                 loading={busy}
                 disabled={code.trim().length !== 6}
                 onPress={() =>

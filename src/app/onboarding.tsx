@@ -23,17 +23,17 @@ const SLIDES: Slide[] = [
   {
     visual: <Logo size={120} />,
     title: '말로만 하는 다짐 말고,\n증명해',
-    body: '운동이든 공부든\n진짜 했는지 위치로 증명한다.',
+    body: '운동·공부를 정말 했는지\n위치로 증명하는 앱이에요.',
   },
   {
     visual: <Badge name="location" />,
-    title: '도착하면 바로 잡는다',
-    body: '헬스장·독서실 등록해 두면 도착할 때 알림 가고,\n떠나면 알아서 기록 끝낸다.',
+    title: '도착하면 알려드려요',
+    body: '헬스장·독서실을 등록해 두면 도착할 때 알림이 오고,\n떠나면 자동으로 기록을 마무리해요.',
   },
   {
     visual: <Badge name="people" />,
     title: '혼자 하면 또 미룬다',
-    body: '친구들이랑 그룹으로 묶여서\n오늘 누가 했는지 서로 확인해.',
+    body: '초대코드로 그룹에 모여\n오늘 누가 증명했는지 서로 확인하세요.',
   },
 ];
 
@@ -94,7 +94,7 @@ export default function Onboarding() {
             />
           ))}
         </View>
-        <Button title={last ? '증명하러 간다' : '다음'} onPress={next} />
+        <Button title={last ? '시작하기' : '다음'} onPress={next} />
       </View>
     </View>
   );

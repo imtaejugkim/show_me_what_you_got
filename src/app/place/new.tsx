@@ -77,7 +77,7 @@ export default function NewPlaceScreen() {
       const here = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       mapRef.current?.animateCameraTo({ latitude: here.coords.latitude, longitude: here.coords.longitude, zoom: ZOOM });
     } catch {
-      Alert.alert('지금 위치를 못 잡았어');
+      Alert.alert('현재 위치를 가져올 수 없어요');
     }
   }
 
@@ -85,7 +85,7 @@ export default function NewPlaceScreen() {
     if (!query.trim()) return;
     try {
       const found = await Location.geocodeAsync(query.trim());
-      if (found.length === 0) return Alert.alert('주소를 못 찾았어', '도로명 주소로 다시 검색해 봐.');
+      if (found.length === 0) return Alert.alert('주소를 찾을 수 없어요', '도로명 주소로 검색해 보세요.');
       const c = { latitude: found[0].latitude, longitude: found[0].longitude };
       mapRef.current?.animateCameraTo({ ...c, zoom: ZOOM });
       await pick(c);
@@ -96,11 +96,11 @@ export default function NewPlaceScreen() {
 
   async function save() {
     if (!picked) return;
-    if (!name.trim()) return Alert.alert('이름 정해', '예: 동네 헬스장');
+    if (!name.trim()) return Alert.alert('이름을 입력해 주세요', '예: 동네 헬스장');
     setSaving(true);
     try {
       const perm = await requestLocationPermissions();
-      if (perm === 'denied') return Alert.alert('위치 권한 없으면 증명 못 해');
+      if (perm === 'denied') return Alert.alert('위치 권한이 필요해요');
       const res = await addPlace({ name: name.trim(), kind, radius: radiusM, address: address || undefined, ...picked });
       haptic.success();
       if (!res.ok) Alert.alert('등록 완료', res.reason);
@@ -143,7 +143,7 @@ export default function NewPlaceScreen() {
       ) : (
         <View style={styles.loading}>
           <ActivityIndicator color={colors.accent} />
-          <Text style={type.caption}>지금 어딘지 찾는 중…</Text>
+          <Text style={type.caption}>현재 위치를 찾는 중…</Text>
         </View>
       )}
 
@@ -178,8 +178,8 @@ export default function NewPlaceScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
               <Ionicons name="finger-print-outline" size={28} color={colors.accent} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={type.sheetTitle}>지도에서 찍어</Text>
-                <Text style={type.caption}>헬스장·독서실 건물 위를 눌러.</Text>
+                <Text style={type.sheetTitle}>지도를 눌러 위치를 선택하세요</Text>
+                <Text style={type.caption}>헬스장·독서실 건물 위를 눌러주세요</Text>
               </View>
             </View>
           ) : (
@@ -199,7 +199,7 @@ export default function NewPlaceScreen() {
                 onChange={setKind}
               />
               <Segmented options={RADII.map((r) => ({ value: r, label: `반경 ${r}m` }))} value={radiusM} onChange={setRadiusM} />
-              <Button title="여기로 정한다" icon="checkmark" onPress={save} loading={saving} />
+              <Button title="이 위치로 등록" icon="checkmark" onPress={save} loading={saving} />
             </>
           )}
         </View>

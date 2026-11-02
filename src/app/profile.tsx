@@ -37,7 +37,7 @@ export default function Profile() {
   }
 
   function confirmSignOut() {
-    Alert.alert('로그아웃할 거야?', '다시 로그인하면 기록이랑 그룹 그대로 돌아온다.', [
+    Alert.alert('로그아웃할까요?', '다시 로그인하면 기록과 그룹이 그대로 돌아와요.', [
       { text: '취소', style: 'cancel' },
       { text: '로그아웃', style: 'destructive', onPress: () => signOut().catch(() => {}) },
     ]);
@@ -46,12 +46,12 @@ export default function Profile() {
   function confirmDelete() {
     haptic.warning();
     Alert.alert(
-      '진짜 탈퇴할 거야?',
-      '기록, 그룹 참여, 닉네임이 전부 지워지고 되돌릴 수 없다.\n내가 만든 그룹은 남은 멤버에게 넘어간다.',
+      '정말 탈퇴할까요?',
+      '기록, 그룹 참여, 닉네임이 모두 삭제되며 되돌릴 수 없어요.\n내가 만든 그룹은 남은 멤버에게 넘어가요.',
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '탈퇴한다',
+          text: '탈퇴하기',
           style: 'destructive',
           onPress: async () => {
             setBusy(true);

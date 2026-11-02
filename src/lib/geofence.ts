@@ -69,7 +69,7 @@ export async function syncGeofences(): Promise<{ ok: boolean; reason?: string }>
   }
 
   const bg = await Location.getBackgroundPermissionsAsync();
-  if (!bg.granted) return { ok: false, reason: '위치 권한 "항상 허용"으로 바꿔야 자동 감지된다.' };
+  if (!bg.granted) return { ok: false, reason: '위치 권한을 "항상 허용"으로 바꿔야 자동 감지가 됩니다.' };
 
   await Location.startGeofencingAsync(
     GEOFENCE_TASK,

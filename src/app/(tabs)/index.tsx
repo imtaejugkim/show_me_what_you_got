@@ -70,7 +70,7 @@ export default function TodayScreen() {
   async function fixPermission() {
     const result = await requestLocationPermissions();
     if (result !== 'always') {
-      Alert.alert('위치 권한', '설정 > 위치 > "항상 허용"으로 바꿔. 안 그러면 도착을 못 잡아.', [
+      Alert.alert('위치 권한', '설정 > 위치 > "항상 허용"을 선택해 주세요.', [
         { text: '취소', style: 'cancel' },
         { text: '설정 열기', onPress: () => Linking.openSettings() },
       ]);
@@ -85,7 +85,7 @@ export default function TodayScreen() {
     try {
       const places = (await getPlaces()).filter((p) => p.kind === kind);
       if (places.length === 0) {
-        Alert.alert('장소부터 정해', `${KIND_LABEL[kind]}할 장소를 먼저 등록해.`, [
+        Alert.alert('장소가 없어요', `${KIND_LABEL[kind]}할 장소를 먼저 등록해 주세요.`, [
           { text: '취소', style: 'cancel' },
           { text: '장소 등록', onPress: () => router.push('/place/new') },
         ]);
@@ -98,7 +98,7 @@ export default function TodayScreen() {
       // GPS 오차를 감안해 반경 + 여유(GPS_MARGIN_M) 까지 허용
       if (near.d > near.p.radius + GPS_MARGIN_M) {
         haptic.error();
-        Alert.alert('아직 거기 아니잖아', `"${near.p.name}"까지 ${Math.round(near.d)}m 남았다. 가서 눌러.`);
+        Alert.alert('장소 밖이에요', `가장 가까운 "${near.p.name}"까지 약 ${Math.round(near.d)}m 남았어요.`);
         return;
       }
       await startSession({ kind, place: near.p });
@@ -115,12 +115,12 @@ export default function TodayScreen() {
     const mins = minutesBetween(active.startedAt, null);
     const need = MIN_MINUTES[active.kind];
     Alert.alert(
-      '여기서 끝낼 거야?',
-      mins >= need ? `${formatDuration(mins)} 했다. 증명 완료.` : `아직 ${need - mins}분 남았어. 지금 끝내면 인정 못 한다.`,
+      '종료할까요?',
+      mins >= need ? `${formatDuration(mins)} 했어요. 증명 완료!` : `아직 ${need - mins}분 더 해야 인증돼요. 그래도 종료할까요?`,
       [
-        { text: '계속한다', style: 'cancel' },
+        { text: '계속하기', style: 'cancel' },
         {
-          text: '끝낸다',
+          text: '종료',
           style: 'destructive',
           onPress: async () => {
             setBusy('end');
@@ -156,8 +156,8 @@ export default function TodayScreen() {
           <Card tone="danger" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 14 }}>
             <IconBadge name="location-outline" color={colors.danger} bg={colors.dangerSoft} size={36} />
             <View style={{ flex: 1 }}>
-              <Text style={type.rowTitle}>자동 감지 꺼져 있음</Text>
-              <Text style={type.caption}>위치 권한 ‘항상 허용’으로 바꿔</Text>
+              <Text style={type.rowTitle}>자동 감지가 꺼져 있어요</Text>
+              <Text style={type.caption}>위치 권한을 ‘항상 허용’으로 바꿔주세요</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.sub} />
           </Card>
@@ -173,13 +173,13 @@ export default function TodayScreen() {
             <Text style={type.caption}>{formatTime(active.startedAt)} 시작</Text>
           </View>
           <ActiveTimer session={active} place={activePlace} />
-          <Button title="끝내기" variant="secondary" icon="stop" onPress={confirmEnd} loading={busy === 'end'} />
+          <Button title="종료하기" variant="secondary" icon="stop" onPress={confirmEnd} loading={busy === 'end'} />
         </Card>
       ) : (
         <Card size="lg" style={{ gap: space.lg }}>
           <View style={{ gap: 4 }}>
             <Text style={type.title}>오늘도 증명해라.</Text>
-            <Text style={type.caption}>장소 도착하면 알림 간다. 이미 왔으면 바로 시작해.</Text>
+            <Text style={type.caption}>등록한 장소에 도착하면 알림이 와요. 이미 도착했다면 바로 시작하세요.</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: space.md }}>
             {KINDS.map((k) => (

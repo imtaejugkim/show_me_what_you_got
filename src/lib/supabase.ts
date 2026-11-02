@@ -32,6 +32,6 @@ export async function currentUserId(): Promise<string | null> {
 /** 로그인이 꼭 필요한 작업에서 사용 */
 export async function requireUserId(): Promise<string> {
   const uid = await currentUserId();
-  if (!uid) throw new Error('로그인부터 해.');
+  if (!uid) throw new Error('로그인이 필요해요.');
   return uid;
 }
