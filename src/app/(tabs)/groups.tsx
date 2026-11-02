@@ -18,6 +18,9 @@ import {
   space,
   type,
 } from '../../components/ui';
+import { AccountCard, handleKakaoResult, KakaoButton } from '../../components/AccountCard';
+import { signInWithKakao } from '../../lib/auth';
+import { emitDataChanged } from '../../lib/events';
 import { createGroup, getMyNickname, joinGroup, listMyGroups, setNickname, type Group } from '../../lib/groups';
 import { haptic } from '../../lib/haptics';
 import { isServerEnabled } from '../../lib/supabase';
@@ -59,6 +62,19 @@ function GroupsOnline() {
   }, []);
   useRefreshOnChange(load);
 
+  // 다른 기기에서 쓰던 카카오 계정으로 로그인 (취소하면 아무 일도 없음)
+  async function kakaoLogin() {
+    setBusy(true);
+    try {
+      await handleKakaoResult(await signInWithKakao(), emitDataChanged);
+    } catch (e) {
+      haptic.error();
+      Alert.alert('로그인 실패', String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
     try {
@@ -97,12 +113,22 @@ function GroupsOnline() {
             onPress={() => run(() => setNickname(nickInput.trim()))}
           />
         </Card>
+        <Card style={{ gap: space.md }}>
+          <Text style={type.caption}>다른 기기에서 카카오로 연결해 둔 계정이 있다면</Text>
+          <KakaoButton
+            title="카카오로 로그인"
+            loading={busy}
+            onPress={kakaoLogin}
+          />
+        </Card>
       </Screen>
     );
   }
 
   return (
     <Screen eyebrow={`${nickname} 님`} title="그룹">
+      <AccountCard />
+
       <Section title="내 그룹">
         {groups.length === 0 ? (
           <EmptyState icon="people-outline" title="함께할 사람을 모아보세요" body="그룹을 만들고 초대코드를 공유하거나, 받은 코드로 참여하세요." />
