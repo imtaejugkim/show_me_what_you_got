@@ -42,3 +42,8 @@ export const saveHistory = (list: Session[]) => writeJson(KEYS.history, list);
 // ---- 같은 장소 알림이 반복해서 뜨지 않게 마지막 알림 시각 기록 ----
 export const getLastPrompts = () => readJson<Record<string, number>>(KEYS.lastPrompt, {});
 export const saveLastPrompts = (m: Record<string, number>) => writeJson(KEYS.lastPrompt, m);
+
+/** 회원 탈퇴 시 이 기기에 저장된 장소·기록 전부 삭제 (온보딩 본 기록은 유지) */
+export async function clearUserData() {
+  await AsyncStorage.multiRemove(Object.values(KEYS));
+}

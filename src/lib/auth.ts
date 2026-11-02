@@ -1,6 +1,10 @@
 // 카카오 로그인 / 로그아웃
 import * as Linking from 'expo-linking';
+import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
+import { emitDataChanged } from './events';
+import { syncGeofences } from './geofence';
+import { clearUserData } from './storage';
 import { supabase } from './supabase';
 
 /** 카카오 로그인이 끝나고 돌아올 앱 주소. Supabase Redirect URLs 에 smwyg://** 가 등록돼 있어야 함 */
@@ -32,6 +36,21 @@ export async function signInWithKakao(): Promise<boolean> {
 
 export async function signOut() {
   await client().auth.signOut();
+}
+
+/**
+ * 회원 탈퇴: 서버의 계정·기록을 지우고, 이 기기의 장소·기록·예약 알림도 지운 뒤 로그아웃.
+ * 내가 만든 그룹은 서버에서 다른 멤버에게 넘어간다 (supabase/schema.sql 의 delete_my_account).
+ */
+export async function deleteAccount() {
+  const sb = client();
+  const { error } = await sb.rpc('delete_my_account');
+  if (error) throw error;
+  await clearUserData();
+  await syncGeofences().catch(() => {}); // 장소가 없어졌으니 위치 감지 중지
+  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+  emitDataChanged();
+  await sb.auth.signOut({ scope: 'local' }); // 서버 계정은 이미 없으니 기기에서만 로그아웃
 }
 
 /** 로그인한 계정 정보 (프로필 화면용) */

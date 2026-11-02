@@ -219,3 +219,36 @@ grant execute on function public.group_today(uuid, timestamptz) to authenticated
 -- 예전 버전에서 public 에 있던 내부 함수 정리
 drop function if exists public.is_group_member(uuid);
 drop function if exists public.shares_group_with(uuid);
+
+-- ======================================================================
+-- 회원 탈퇴: 내 계정과 데이터 삭제
+-- 내가 만든 그룹은 다른 멤버가 있으면 가장 먼저 들어온 멤버에게 넘기고, 혼자면 그룹도 삭제
+-- 프로필·그룹 멤버십·기록은 auth.users 삭제 시 on delete cascade 로 함께 지워짐
+-- ======================================================================
+create or replace function public.delete_my_account()
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  uid uuid := (select auth.uid());
+  g record;
+  heir uuid;
+begin
+  if uid is null then raise exception 'not signed in'; end if;
+
+  for g in select id from public.groups where owner_id = uid loop
+    heir := null;
+    select m.user_id into heir from public.group_members m
+      where m.group_id = g.id and m.user_id <> uid
+      order by m.joined_at limit 1;
+    if heir is null then
+      delete from public.groups where id = g.id;
+    else
+      update public.groups set owner_id = heir where id = g.id;
+    end if;
+  end loop;
+
+  delete from auth.users where id = uid;
+end;
+$$;
+
+revoke execute on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

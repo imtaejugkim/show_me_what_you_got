@@ -3,7 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { Avatar, Button, Card, colors, Input, Section, space, type } from '../components/ui';
-import { getAccountInfo, signOut } from '../lib/auth';
+import { deleteAccount, getAccountInfo, signOut } from '../lib/auth';
 import { setNickname } from '../lib/groups';
 import { haptic } from '../lib/haptics';
 import { useSession } from '../lib/session';
@@ -37,10 +37,35 @@ export default function Profile() {
   }
 
   function confirmSignOut() {
-    Alert.alert('로그아웃할까요?', '다시 로그인하면 기록과 그룹이 그대로 돌아와요.', [
+    Alert.alert('로그아웃할 거야?', '다시 로그인하면 기록이랑 그룹 그대로 돌아온다.', [
       { text: '취소', style: 'cancel' },
       { text: '로그아웃', style: 'destructive', onPress: () => signOut().catch(() => {}) },
     ]);
+  }
+
+  function confirmDelete() {
+    haptic.warning();
+    Alert.alert(
+      '진짜 탈퇴할 거야?',
+      '기록, 그룹 참여, 닉네임이 전부 지워지고 되돌릴 수 없다.\n내가 만든 그룹은 남은 멤버에게 넘어간다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '탈퇴한다',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await deleteAccount(); // 끝나면 자동으로 로그인 화면으로 이동
+            } catch (e) {
+              setBusy(false);
+              haptic.error();
+              Alert.alert('탈퇴 실패', String((e as Error)?.message ?? e));
+            }
+          },
+        },
+      ],
+    );
   }
 
   const providerLabel = account?.provider ? (PROVIDER_LABEL[account.provider] ?? account.provider) : null;
@@ -77,7 +102,10 @@ export default function Profile() {
         </Card>
       </Section>
 
-      <Button title="로그아웃" variant="ghost" onPress={confirmSignOut} />
+      <View style={{ gap: space.xs }}>
+        <Button title="로그아웃" variant="ghost" onPress={confirmSignOut} />
+        <Button title="회원 탈퇴" variant="ghost" onPress={confirmDelete} disabled={busy} />
+      </View>
     </ScrollView>
   );
 }
