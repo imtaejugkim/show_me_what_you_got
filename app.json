@@ -54,6 +54,14 @@
           "imageWidth": 160,
           "resizeMode": "contain"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "운동·공부 장소에서 인증 사진을 찍기 위해 카메라를 사용합니다.",
+          "photosPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "backgroundColor": "#0B0B0C"
