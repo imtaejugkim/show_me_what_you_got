@@ -15,6 +15,9 @@ export async function startSession(input: { kind: Kind; place: Place | null }): 
     kind: input.kind,
     placeId: input.place?.id ?? null,
     placeName: input.place?.name ?? '직접 시작',
+    placeLat: input.place?.latitude,
+    placeLng: input.place?.longitude,
+    placeRadius: input.place?.radius,
     startedAt: new Date().toISOString(),
     endedAt: null,
     verified: false,
@@ -74,7 +77,15 @@ export async function syncSessions() {
     place_name: s.placeName,
     started_at: s.startedAt,
     ended_at: s.endedAt,
-    verified: s.verified,
+    verified: s.verified, // 서버 트리거가 다시 계산함
+    place_lat: s.placeLat ?? null,
+    place_lng: s.placeLng ?? null,
+    place_radius: s.placeRadius ?? null,
+    photo_path: s.photo?.path ?? null,
+    photo_lat: s.photo?.path ? s.photo.lat : null,
+    photo_lng: s.photo?.path ? s.photo.lng : null,
+    photo_taken_at: s.photo?.path ? s.photo.takenAt : null,
+    photo_source: s.photo?.path ? s.photo.source : null,
   }));
   const { error } = await supabase.from('sessions').upsert(rows);
   if (error) throw error;

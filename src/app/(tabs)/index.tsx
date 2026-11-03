@@ -1,6 +1,7 @@
 // "오늘" 화면 (시안: 오늘 — 운동 중)
 // 연속 기록 → 진행 중 세션(또는 시작 버튼) → 운동/공부 타일 → 그룹 요약 → 오늘 기록
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,6 +29,7 @@ import { haptic } from '../../lib/haptics';
 import { GPS_MARGIN_M } from '../../lib/places';
 import { getGroupToday, listMyGroups, type Group } from '../../lib/groups';
 import { endSession, getTodaySessions, startSession } from '../../lib/sessions';
+import { takeProofPhoto } from '../../lib/photoProof';
 import { useSession } from '../../lib/session';
 import { getStreakStats, type WeekDay } from '../../lib/stats';
 import { getActiveSession, getPlaces } from '../../lib/storage';
@@ -173,6 +175,7 @@ export default function TodayScreen() {
             <Text style={type.caption}>{formatTime(active.startedAt)} 시작</Text>
           </View>
           <ActiveTimer session={active} place={activePlace} />
+          <PhotoProof session={active} />
           <Button title="종료하기" variant="secondary" icon="stop" onPress={confirmEnd} loading={busy === 'end'} />
         </Card>
       ) : (
@@ -261,7 +264,7 @@ export default function TodayScreen() {
                   iconColor={s.verified ? colors.accent : colors.sub}
                   iconBg={s.verified ? colors.accentSoft : colors.surfaceHigh}
                   title={s.placeName}
-                  subtitle={`${formatTime(s.startedAt)} – ${s.endedAt ? formatTime(s.endedAt) : ''} · ${formatDuration(minutesBetween(s.startedAt, s.endedAt))}`}
+                  subtitle={`${formatTime(s.startedAt)} – ${s.endedAt ? formatTime(s.endedAt) : ''} · ${formatDuration(minutesBetween(s.startedAt, s.endedAt))}${s.photo?.verified ? ' · 사진 인증' : ''}`}
                   right={s.verified ? <Pill label="완료" tone="ok" /> : <Pill label="시간 부족" tone="danger" />}
                 />
               </View>
@@ -339,6 +342,64 @@ function ActiveTimer({ session, place }: { session: Session; place: Place | null
           <Text style={type.caption}>목표 {need}분</Text>
         </View>
       </View>
+    </View>
+  );
+}
+
+/** 진행 중 카드의 사진 인증 영역: 아직이면 촬영 버튼, 찍었으면 사진과 결과 */
+function PhotoProof({ session }: { session: Session }) {
+  const [busy, setBusy] = useState(false);
+  const canUse = session.placeLat != null; // 등록한 장소에서 시작한 기록만
+
+  async function shoot() {
+    setBusy(true);
+    try {
+      const r = await takeProofPhoto();
+      if (r.status === 'ok') {
+        haptic.success();
+        if (!r.uploaded) Alert.alert('사진을 아직 못 올렸어요', '인터넷 연결을 확인하고 다시 찍어주세요. 사진은 이 기기에 저장돼 있어요.');
+      } else if (r.status === 'outside') {
+        haptic.error();
+        Alert.alert('장소 밖에서 찍은 사진이에요', `장소에서 약 ${Math.round(r.distance)}m 떨어진 곳이에요. 장소 안에서 다시 찍어주세요.`);
+      } else if (r.status === 'too_old') {
+        haptic.error();
+        Alert.alert('시작 전에 찍힌 사진이에요', '기록을 시작한 뒤에 찍은 사진만 인증돼요.');
+      } else if (r.status === 'no_location') {
+        haptic.error();
+        Alert.alert('위치를 확인할 수 없어요', '위치 서비스를 켜고 다시 찍어주세요.');
+      } else if (r.status === 'no_permission') {
+        Alert.alert('카메라 권한이 필요해요', '설정에서 카메라 권한을 허용해 주세요.', [
+          { text: '취소', style: 'cancel' },
+          { text: '설정 열기', onPress: () => Linking.openSettings() },
+        ]);
+      }
+    } catch (e) {
+      haptic.error();
+      Alert.alert('사진 인증 실패', String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!canUse) return null;
+
+  if (!session.photo) {
+    return <Button title="사진으로 인증하기" variant="secondary" icon="camera" onPress={shoot} loading={busy} />;
+  }
+
+  const p = session.photo;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="사진 다시 찍기" onPress={shoot} disabled={busy}>
+        <Image source={{ uri: p.localUri }} style={{ width: 64, height: 64, borderRadius: 14 }} contentFit="cover" />
+      </Pressable>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Pill label={p.path ? '사진 인증 완료' : '업로드 대기'} tone={p.path ? 'ok' : 'neutral'} />
+        <Text style={type.caption}>
+          {formatTime(p.takenAt)} · 장소에서 {p.distance}m · {p.source === 'exif' ? '사진 위치' : '휴대폰 위치'}
+        </Text>
+      </View>
+      <Button title="다시" variant="ghost" onPress={shoot} loading={busy} style={{ height: 36, paddingHorizontal: 8 }} />
     </View>
   );
 }

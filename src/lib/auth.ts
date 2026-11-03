@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { emitDataChanged } from './events';
 import { syncGeofences } from './geofence';
+import { deleteMyPhotos } from './photoProof';
 import { clearUserData } from './storage';
 import { supabase } from './supabase';
 
@@ -44,6 +45,8 @@ export async function signOut() {
  */
 export async function deleteAccount() {
   const sb = client();
+  const { data: me } = await sb.auth.getUser();
+  if (me.user) await deleteMyPhotos(me.user.id).catch(() => {}); // 계정이 지워지기 전에 사진부터 삭제
   const { error } = await sb.rpc('delete_my_account');
   if (error) throw error;
   await clearUserData();

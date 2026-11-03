@@ -252,3 +252,121 @@ $$;
 
 revoke execute on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ======================================================================
+-- 사진 인증
+-- 세션에 장소 좌표(판정 기준)와 사진 정보를 저장하고, 서버가 사진 인증 여부를 판정
+-- ======================================================================
+alter table public.sessions
+  add column if not exists place_lat double precision,
+  add column if not exists place_lng double precision,
+  add column if not exists place_radius integer,
+  add column if not exists photo_path text,
+  add column if not exists photo_lat double precision,
+  add column if not exists photo_lng double precision,
+  add column if not exists photo_taken_at timestamptz,
+  add column if not exists photo_source text check (photo_source in ('exif', 'device')),
+  add column if not exists photo_verified boolean not null default false;
+
+-- 두 좌표 사이 거리(미터)
+create or replace function private.distance_m(lat1 double precision, lng1 double precision, lat2 double precision, lng2 double precision)
+returns double precision language sql immutable set search_path = '' as $$
+  select 2 * 6371000 * asin(sqrt(
+    power(sin(radians(lat2 - lat1) / 2), 2) +
+    cos(radians(lat1)) * cos(radians(lat2)) * power(sin(radians(lng2 - lng1) / 2), 2)
+  ));
+$$;
+
+-- 검증 트리거 (위의 정의를 사진 판정까지 포함한 버전으로 교체)
+-- 사진 인정 조건: 본인 폴더의 사진 + 장소 반경(+50m GPS 여유) 안 + 세션 시간(앞뒤 5분 여유) 안에서 촬영
+create or replace function private.sessions_validate()
+returns trigger language plpgsql set search_path = '' as $$
+declare
+  need_minutes int := case new.kind when 'workout' then 30 when 'study' then 60 end;
+begin
+  if new.started_at > now() + interval '10 minutes' then
+    raise exception 'started_at is in the future';
+  end if;
+  if new.ended_at is not null then
+    if new.ended_at < new.started_at then
+      raise exception 'ended_at is before started_at';
+    end if;
+    if new.ended_at > now() + interval '10 minutes' then
+      raise exception 'ended_at is in the future';
+    end if;
+  end if;
+  if tg_op = 'UPDATE' and old.ended_at is not null
+     and (new.started_at is distinct from old.started_at or new.ended_at is distinct from old.ended_at) then
+    raise exception 'finished session cannot be changed';
+  end if;
+
+  new.verified := new.ended_at is not null
+    and new.ended_at - new.started_at >= make_interval(mins => need_minutes);
+
+  new.photo_verified := new.photo_path is not null
+    and new.photo_path like (new.user_id::text || '/%')
+    and new.photo_lat is not null and new.photo_lng is not null
+    and new.place_lat is not null and new.place_lng is not null and new.place_radius is not null
+    and private.distance_m(new.photo_lat, new.photo_lng, new.place_lat, new.place_lng) <= new.place_radius + 50
+    and new.photo_taken_at is not null
+    and new.photo_taken_at >= new.started_at - interval '5 minutes'
+    and new.photo_taken_at <= coalesce(new.ended_at, now()) + interval '5 minutes'
+    and new.photo_taken_at <= now() + interval '10 minutes';
+  return new;
+end;
+$$;
+revoke all on function private.sessions_validate() from public, anon, authenticated;
+
+-- 그룹 오늘 현황에 사진 정보 포함 (반환 형식이 바뀌어 다시 생성)
+drop function if exists public.group_today(uuid, timestamptz);
+create function public.group_today(p_group_id uuid, p_since timestamptz)
+returns table (
+  user_id uuid, nickname text, session_id uuid, kind text, place_name text,
+  started_at timestamptz, ended_at timestamptz, verified boolean,
+  photo_path text, photo_verified boolean
+) language sql stable security definer set search_path = '' as $$
+  select m.user_id, coalesce(p.nickname, '익명'), s.id, s.kind, s.place_name, s.started_at, s.ended_at, s.verified,
+         s.photo_path, coalesce(s.photo_verified, false)
+  from public.group_members m
+  left join public.profiles p on p.id = m.user_id
+  left join public.sessions s on s.user_id = m.user_id and s.started_at >= p_since
+  where m.group_id = p_group_id and private.is_group_member(p_group_id)
+  order by m.joined_at, s.started_at;
+$$;
+revoke execute on function public.group_today(uuid, timestamptz) from public, anon;
+grant execute on function public.group_today(uuid, timestamptz) to authenticated;
+
+-- 사진 저장소 (비공개): proofs/{user_id}/{session_id}.jpg
+-- 본인 폴더에만 올릴 수 있고, 본인과 같은 그룹원만 볼 수 있음
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('proofs', 'proofs', false, 5242880, array['image/jpeg'])
+on conflict (id) do update set public = false, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg'];
+
+create or replace function private.can_view_proof(p_name text)
+returns boolean language plpgsql stable security definer set search_path = '' as $$
+declare owner_id uuid;
+begin
+  begin
+    owner_id := (storage.foldername(p_name))[1]::uuid;
+  exception when others then
+    return false;
+  end;
+  return owner_id = (select auth.uid()) or private.shares_group_with(owner_id);
+end;
+$$;
+revoke all on function private.can_view_proof(text) from public, anon;
+grant execute on function private.can_view_proof(text) to authenticated;
+
+drop policy if exists "proofs: upload own" on storage.objects;
+drop policy if exists "proofs: update own" on storage.objects;
+drop policy if exists "proofs: delete own" on storage.objects;
+drop policy if exists "proofs: read own or group" on storage.objects;
+create policy "proofs: upload own" on storage.objects for insert to authenticated
+  with check (bucket_id = 'proofs' and (storage.foldername(name))[1] = (select auth.uid())::text);
+create policy "proofs: update own" on storage.objects for update to authenticated
+  using (bucket_id = 'proofs' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'proofs' and (storage.foldername(name))[1] = (select auth.uid())::text);
+create policy "proofs: delete own" on storage.objects for delete to authenticated
+  using (bucket_id = 'proofs' and (storage.foldername(name))[1] = (select auth.uid())::text);
+create policy "proofs: read own or group" on storage.objects for select to authenticated
+  using (bucket_id = 'proofs' and private.can_view_proof(name));

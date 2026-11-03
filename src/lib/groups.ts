@@ -14,7 +14,19 @@ export type FeedRow = {
   started_at: string | null;
   ended_at: string | null;
   verified: boolean | null;
+  photo_path: string | null;
+  photo_verified: boolean;
 };
+
+/** 비공개 사진 저장소의 사진을 잠깐(1시간) 볼 수 있는 주소로 바꿈 */
+export async function getPhotoUrls(paths: string[]): Promise<Record<string, string>> {
+  if (!supabase || paths.length === 0) return {};
+  const { data, error } = await supabase.storage.from('proofs').createSignedUrls(paths, 60 * 60);
+  if (error || !data) return {};
+  const out: Record<string, string> = {};
+  for (const d of data) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  return out;
+}
 
 function client() {
   if (!supabase) throw new Error('서버가 설정되지 않았어요. README의 Supabase 설정을 확인해 주세요.');

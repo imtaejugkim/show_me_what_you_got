@@ -51,6 +51,28 @@ export type Session = {
   /** 최소 시간 이상 했는지 */
   verified: boolean;
   endReason?: 'left' | 'manual';
+  /** 시작할 때의 장소 좌표·반경 (사진 인증 판정 기준. 직접 시작이면 없음) */
+  placeLat?: number;
+  placeLng?: number;
+  placeRadius?: number;
+  /** 사진 인증 */
+  photo?: SessionPhoto;
   /** 서버(Supabase)에 올라갔는지 */
   synced: boolean;
+};
+
+export type SessionPhoto = {
+  /** 이 기기에 저장된 압축 사진 (화면 표시용) */
+  localUri: string;
+  /** 서버 저장소 경로 {userId}/{sessionId}.jpg (업로드 전이면 없음) */
+  path?: string;
+  lat: number;
+  lng: number;
+  takenAt: string; // ISO
+  /** 위치를 어디서 얻었는지: 사진 EXIF 또는 촬영 순간의 휴대폰 GPS */
+  source: 'exif' | 'device';
+  /** 장소 반경과의 거리 (미터) */
+  distance: number;
+  /** 앱에서 판정한 결과 (최종 판정은 서버가 다시 함) */
+  verified: boolean;
 };

@@ -1,7 +1,8 @@
 // 그룹 상세 (시안: 그룹 — 오늘 현황) — 그룹원들의 오늘 인증 현황
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Alert, Modal, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import {
   Avatar,
   Button,
@@ -18,13 +19,13 @@ import {
   space,
   type,
 } from '../../components/ui';
-import { getGroupToday, leaveGroup, type FeedRow } from '../../lib/groups';
+import { getGroupToday, getPhotoUrls, leaveGroup, type FeedRow } from '../../lib/groups';
 import { KIND_LABEL } from '../../lib/types';
 import { useRefreshOnChange } from '../../lib/useRefreshOnChange';
 import { formatDuration, formatToday, minutesBetween } from '../../lib/utils';
 
 type Status = 'done' | 'live' | 'none';
-type Member = { userId: string; nickname: string; sessions: FeedRow[]; status: Status; detail: string };
+type Member = { userId: string; nickname: string; sessions: FeedRow[]; status: Status; detail: string; photoPath: string | null };
 
 const STATUS: Record<Status, { label: string; tone: PillTone }> = {
   done: { label: '완료', tone: 'ok' },
@@ -78,13 +79,25 @@ export default function GroupScreen() {
                 : `${minutesBetween(shown.started_at!, null)}분째`,
             ].join(' · ')
           : '아직 기록이 없어요';
-        return { userId, nickname: names.get(userId) ?? '익명', sessions, status, detail };
+        // 오늘 사진 인증한 기록 중 가장 최근 것
+        const photoPath = sessions.filter((s) => s.photo_verified && s.photo_path).at(-1)?.photo_path ?? null;
+        return { userId, nickname: names.get(userId) ?? '익명', sessions, status, detail, photoPath };
       })
       .sort((a, b) => order[a.status] - order[b.status]);
   }, [rows]);
 
   const doneCount = members.filter((m) => m.status === 'done').length;
   const liveCount = members.filter((m) => m.status === 'live').length;
+
+  // 인증 사진: 비공개 저장소라 잠깐 볼 수 있는 주소를 받아옴
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [viewing, setViewing] = useState<string | null>(null);
+  const photoKey = members.map((m) => m.photoPath ?? '').join('|');
+  useEffect(() => {
+    const paths = members.map((m) => m.photoPath).filter((p): p is string => !!p);
+    getPhotoUrls(paths).then(setPhotoUrls);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photoKey]);
 
   function share() {
     if (code) Share.share({ message: `말로만 하지 말고 증명하자. Show Me What You Got 초대코드: ${code}` });
@@ -146,6 +159,11 @@ export default function GroupScreen() {
                     {m.detail}
                   </Text>
                 </View>
+                {m.photoPath && photoUrls[m.photoPath] ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel={`${m.nickname}의 인증 사진 보기`} onPress={() => setViewing(photoUrls[m.photoPath!])}>
+                    <Image source={{ uri: photoUrls[m.photoPath] }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" />
+                  </Pressable>
+                ) : null}
                 <Pill label={STATUS[m.status].label} tone={STATUS[m.status].tone} />
               </View>
             </View>
@@ -170,6 +188,17 @@ export default function GroupScreen() {
           ])
         }
       />
+
+      <Modal visible={!!viewing} transparent animationType="fade" onRequestClose={() => setViewing(null)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="사진 닫기"
+          onPress={() => setViewing(null)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: space.lg }}
+        >
+          {viewing ? <Image source={{ uri: viewing }} style={{ width: '100%', aspectRatio: 3 / 4, borderRadius: 16 }} contentFit="contain" /> : null}
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
